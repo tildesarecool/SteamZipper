@@ -1,8 +1,9 @@
+# P:\steamzipper
+
 # Script parameters (this should be the very first thing in the script)
 param (
     [string]$sourceFolder,      # Source folder with subfolders to zip
-    [string]$destinationFolder, # Destination folder for the zip files
-    [int]$maxJobs = 5           # Optional: limit on number of concurrent jobs
+    [string]$destinationFolder  # Destination folder for the zip files
 )
 
 # Check if source and destination folders are provided
@@ -33,7 +34,7 @@ function Get-PlatformShortName {
 }
 
 # Function to create a zip file if it doesn't already exist or needs updating
-function Process-ZipCreation {
+function Proc-ZipCreate {
     param (
         [string]$sourceFolderPath,
         [string]$destinationFolderPath,
@@ -90,8 +91,7 @@ function Monitor-Jobs {
 function Process-Folders {
     param (
         [string]$sourceFolder,
-        [string]$destinationFolder,
-        [int]$maxJobs = 5  # Default number of concurrent jobs if not specified
+        [string]$destinationFolder
     )
 
     # Clean up any previous jobs
@@ -118,16 +118,8 @@ function Process-Folders {
         $jobName = "Zipping_$folderName"
         $jobs += Start-Job -Name $jobName -ScriptBlock {
             param ($src, $dest, $fname, $platform, $dStamp)
-            Process-ZipCreation -sourceFolderPath $src -destinationFolderPath $dest -folderName $fname -platformShortName $platform -dateStamp $dStamp
+            Proc-ZipCreate -sourceFolderPath $src -destinationFolderPath $dest -folderName $fname -platformShortName $platform -dateStamp $dStamp
         } -ArgumentList $folder.FullName, $destinationFolder, $folderName, $platformShortName, $folderModifiedDate
-
-        # Limit the number of concurrent jobs
-        while ($jobs.Count -ge $maxJobs) {
-            $completedJob = Wait-Job -Any
-            Receive-Job -Job $completedJob
-            Remove-Job -Job $completedJob
-            $jobs = $jobs | Where-Object { $_.State -eq 'Running' }
-        }
     }
 
     # Monitor remaining jobs
@@ -135,4 +127,4 @@ function Process-Folders {
 }
 
 # Start the folder processing
-Process-Folders -sourceFolder $sourceFolder -destinationFolder $destinationFolder -maxJobs $maxJobs
+Proc-ZipCreate -sourceFolder $sourceFolder -destinationFolder $destinationFolder
