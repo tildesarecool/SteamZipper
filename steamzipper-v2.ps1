@@ -114,6 +114,7 @@ function Confirm-ZipFileReq {
 
     }
 
+    # Fill the hashtable
     for ($i = 0; $i -lt $buildSrcFolderList.Length; $i++) {
         $ZipFoldersTable[$buildSrcFolderList[$i]] = $buildZipList[$i]
     }
@@ -131,8 +132,22 @@ function Go-SteamZipper {
     $ZipToCreate = Confirm-ZipFileReq
     #Write-Host "ZipFoldersTable value is $ZiptoCreate"
 
+
+
+    # not sure write-progress is necessary but i'm trying it out
+    $currentFolderIndex = 0
+    $totalFolders = $ZipToCreate.Count
+    
+
     foreach ($key in $ZipToCreate.Keys) {
         Write-Host "$key **maps to** $($ZipToCreate[$key])"
+    
+        $currentFolderIndex++
+        $percentComplete = ($currentFolderIndex / $totalFolders) * 100
+        Write-Progress -Activity "Zipping files" `
+                        -Status "Zipping $($key.Name)" `
+                        -PercentComplete $percentComplete
+    
         Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key])
     }
 
