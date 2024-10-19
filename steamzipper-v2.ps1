@@ -51,27 +51,28 @@ function Get-DateFromZipName {
     return $null
 }
 
-function Get-FiileFolderModifiedDate {
-#    param (
-#        [string]$zipFileName
-#        [string]$folderName
-#    )
-    #$pattern = "\d{8}"
-
-    #$digModDate = $sourceFolder + "dig dog\"
-    #Write-Host "digModDate is $digModDate"
-
-    $gameFolder = "Horizon Chase"
-    $digDogFullPath = Join-Path -Path $sourceFolder -ChildPath $gameFolder
-
-#    return $digDogFullPath
-
-    $digModDate =  (Get-Item $digDogFullPath).LastWriteTime.ToString("MMddyyyy")
-    return $digModDate
-#
-    #return $digModDate.LastWriteTime.ToString("MMddyyyy")
-
-}
+# function Get-FiileFolderModifiedDate {
+#     # this function was just for testing. it's been replaced
+#     #    param (
+# #        [string]$zipFileName
+# #        [string]$folderName
+# #    )
+#     #$pattern = "\d{8}"
+# 
+#     #$digModDate = $sourceFolder + "dig dog\"
+#     #Write-Host "digModDate is $digModDate"
+# 
+#     $gameFolder = "Horizon Chase"
+#     $digDogFullPath = Join-Path -Path $sourceFolder -ChildPath $gameFolder
+# 
+# #    return $digDogFullPath
+# 
+#     $digModDate =  (Get-Item $digDogFullPath).LastWriteTime.ToString("MMddyyyy")
+#     return $digModDate
+# #
+#     #return $digModDate.LastWriteTime.ToString("MMddyyyy")
+# 
+# }
 
 function Confirm-ZipFileReq {
     $folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
@@ -91,7 +92,7 @@ function Confirm-ZipFileReq {
 
         #$buildZipList += $finalName
         $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
-        $srcZipExist = Join-Path -Path $sourceFolder -ChildPath $finalName
+        #$srcZipExist = Join-Path -Path $sourceFolder -ChildPath $finalName
 
         if (-not (Test-Path -Path $DestZipExist)) {
 
