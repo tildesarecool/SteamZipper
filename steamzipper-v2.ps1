@@ -52,32 +52,37 @@ function Get-DateFromZipName {
 }
 
 # function Get-FiileFolderModifiedDate {
-#     # this function was just for testing. it's been replaced
-#     #    param (
-# #        [string]$zipFileName
-# #        [string]$folderName
-# #    )
-#     #$pattern = "\d{8}"
-# 
-#     #$digModDate = $sourceFolder + "dig dog\"
-#     #Write-Host "digModDate is $digModDate"
-# 
-#     $gameFolder = "Horizon Chase"
-#     $digDogFullPath = Join-Path -Path $sourceFolder -ChildPath $gameFolder
-# 
-# #    return $digDogFullPath
-# 
-#     $digModDate =  (Get-Item $digDogFullPath).LastWriteTime.ToString("MMddyyyy")
-#     return $digModDate
-# #
-#     #return $digModDate.LastWriteTime.ToString("MMddyyyy")
-# 
-# }
+
+function Get-FolderSizeKB {
+    param (
+        $folderPath
+    )
+    # Specify the folder path and the size limit (in KB)
+    $sizeLimitKB = 50
+
+    # Get the total size of the folder (recursively)
+    $totalSize = (Get-ChildItem -Path $folderPath -Recurse -File | Measure-Object -Property Length -Sum).Sum
+
+    # Convert size to KB
+    $totalSizeKB = [math]::Round($totalSize / 1KB, 2)
+
+    # Output the total size of the folder
+    Write-Host "Total folder size: $totalSizeKB KB"
+
+    # Compare the total size to the size limit
+    if ($totalSizeKB -gt $sizeLimitKB) {
+        Write-Host "The folder size is greater than $sizeLimitKB KB."
+        return $true
+    } else {
+        Write-Host "The folder size is less than or equal to $sizeLimitKB KB."
+        return $false
+    }
+
+}
 
 function Confirm-ZipFileReq {
     $folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
     #Write-Host "value of folders is $folders"
-
     $ZipFoldersTable = @{}
     $buildZipList = @()
     $buildSrcFolderList = @()
@@ -85,61 +90,40 @@ function Confirm-ZipFileReq {
     foreach ($subfolder in $folders) {
         $folderName = $subfolder.Name -replace ' ', '_'
         $FolderModDate = $subfolder.LastWriteTime.ToString("MMddyyyy")
-        #$dateStamp = (Get-Item $FolderModDate).ToString("MMddyyyy")
+        $existZipModDate = $subfolder.LastWriteTime.ToString("MMddyyy")
+        Write-Host "existing zip mod date is $existZipModDate and folder mod date is $FolderModDate"
         $plat = Get-PlatformShortName #-path $sourceFolder
-        
         $finalName = "$folderName" + "_$FolderModDate" + "_$plat.zip"
-
-        #$buildZipList += $finalName
         $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
-        #$srcZipExist = Join-Path -Path $sourceFolder -ChildPath $finalName
-
-        if (-not (Test-Path -Path $DestZipExist)) {
-
+        #$skipFlag = 0
+        $TestFolderSize = Get-FolderSizeKB $subfolder
+        Write-Host "Value of getkb is $TestFolderSize"
+        if (-not (Test-Path -Path $DestZipExist) -or ((Test-Path -Path $DestZipExist  ) `
+          -and ( $existZipModDate -lt $FolderModDate)) -and $TestFolderSize)  {
             $buildSrcFolderList += $subfolder
-
-            #Write-Host "Zip needs to be created $DestZipExist"
-            #$buildZipList += $finalName
-            #$buildZipList += $srcZipExist
+#            Write-Host "folderdatemod is $folderModDate and destzipexist mod date is " + $DestZipExist.LastWriteTime.ToString('MMddyyyy')
             $buildZipList += $DestZipExist
-            #Write-Host "not Found zip file in backup folder, $destinationFolder"
-            #Write-Host "finalname: $srcZipExist"
-            #Write-Host "destzipex: $DestZipExist"
-        }
-
-        
-        
-        #Write-Host "filename: $finalName"
-        #Write-Host "contents of Zip list is $buildZipList"
-        #Write-Host "value of destzipexist is $DestZipExist"
-
+        } 
+#        elseif ((Test-Path -Path $DestZipExist -eq $true) -and ( $DestZipExist.LastWriteTime.ToString("MMddyyyy") -gt $FolderModDate)) {
+#            
+#        } 
+            
+       
     }
-
     # Fill the hashtable
     for ($i = 0; $i -lt $buildSrcFolderList.Length; $i++) {
         $ZipFoldersTable[$buildSrcFolderList[$i]] = $buildZipList[$i]
     }
-
-   
-#    Write-Host "contents of Zip list is $buildZipList"
-    #Write-Host "buildSrcFolderList is $buildSrcFolderList"
-    
-    #Write-Host "contents of Zip list is $buildZipList"
-    #return $buildZipList
     return $ZipFoldersTable
 }
 
 function Go-SteamZipper {
     $ZipToCreate = Confirm-ZipFileReq
     #Write-Host "ZipFoldersTable value is $ZiptoCreate"
-
-
-
     # not sure write-progress is necessary but i'm trying it out
     $currentFolderIndex = 0
     $totalFolders = $ZipToCreate.Count
     
-
     foreach ($key in $ZipToCreate.Keys) {
         Write-Host "$key **maps to** $($ZipToCreate[$key])"
     
@@ -147,12 +131,9 @@ function Go-SteamZipper {
         $percentComplete = ($currentFolderIndex / $totalFolders) * 100
         Write-Progress -Activity "Zipping files" `
                         -Status "Zipping $($key.Name)" `
-                        -PercentComplete $percentComplete
-    
+                        -PercentComplete $percentComplete    
         Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key])
     }
-
-
 }
 
 Go-SteamZipper

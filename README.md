@@ -42,6 +42,14 @@ The entries on the left are what would be found in a path, like in *Program File
 
 It doesn't delete the old zip file though, so I have to either add separate functionality or write a secondary script for finding and deciding what to do with zip files with the same name except for date stamp. Most likely just go with the one with the most recent date stamp.
 
+### 19 October 2024
+
+I'm implemented the date stamp comparison between folder and zip file. It may need more testing but as far as I can tell it's working.
+
+I also put in a check to make sure the folder to be backed up isn't empty. No need to back up a 0KB folder, right? So it checks to make sure the folder in question is larger than 100KB.
+
+I mean I did this is one big if condition which isn't ideal. But at least it's working as far as I can tell.
+
 ### 18 October 2024
 
 The script is essentially done as of now. Done in the sense it does in fact loop through the subfolders of a folder, add the subfolders to a zip archive, and save the zip in a specific destination folder.
