@@ -1,4 +1,10 @@
-# P:\steamzipper
+# Original steamzipper repo found at
+# https://github.com/tildesarecool/SteamZipper
+# Oct 2024
+
+# module to look into later:
+# https://github.com/santisq/PSCompression/tree/main
+# (i found it on the PS gallery https://www.powershellgallery.com/packages/PSCompression/2.0.7)
 
 # Script parameters (this should be the very first thing in the script)
 param (
@@ -13,20 +19,33 @@ if (-not $sourceFolder -or -not $destinationFolder) {
     exit 1
 }
 
+
+# hopefully this is straight forward: 
+# MM is month, dd is day and yyyy is year
+# so if you wanted day-month-year you'd change this to
+# ddMMyyyy (in quotes)
+# DON'T RUN IT ONCE AND CHANGE IT as the script isn't 
+# smart enough to recognize a different format 
+# also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
+$PreferredDateFormat = "MMddyyyy"
+
 function Get-PlatformShortName {
 #    param (
 #        [string]$path
 #    )
 
     $path = $sourceFolder
-
+    # additional platforms (xbox, origin, uplay, etc) can be added to the table below
+    # easiest way would be to copy/paste an existing line
+    # and modify it left/right (sample origin below. remove # to enable)
     $platforms = @{
         "epic games"   = "epic"
         "Amazon Games" = "amazon"
         "GOG"          = "gog"
         "Steam"        = "steam"
+        #"Origin"        = "origin"
     }
-
+    # fortunately, the -like parameter is NOT case sensitive by default
     foreach ($platform in $platforms.Keys) {
         if ($path -like "*$platform*") {
             return $platforms[$platform]
@@ -82,6 +101,25 @@ function Get-FolderSizeKB {
 
 }
 
+function Get-DestZipDateString {
+    param (
+        $zipFileName
+    )
+    $splitdate = $zipFileName -split "_"
+    if ($splitdate[-2]) {
+        $justdate = $splitdate[-2]
+        return $justdate    
+    } 
+    else {
+        return 000
+    }
+
+    #Write-Host "justdate is $justdate" # debugging thing
+    #return $justdate    
+}
+
+# Get-DestZipDateString "Horizon_Chase_10152024_steam.zip" # seems to work with test data
+
 function Confirm-ZipFileReq {
     $folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
     #Write-Host "value of folders is $folders"
@@ -91,12 +129,20 @@ function Confirm-ZipFileReq {
 
     foreach ($subfolder in $folders) {
         $folderName = $subfolder.Name -replace ' ', '_'
-        $FolderModDate = $subfolder.LastWriteTime.ToString("MMddyyyy")
-        $existZipModDate = $subfolder.LastWriteTime.ToString("MMddyyy")
+        # $PreferredDateFormat defined at top of script
+        $FolderModDate = $subfolder.LastWriteTime.ToString($PreferredDateFormat)
+
+        #$existZipModDate = $subfolder.LastWriteTime.ToString("MMddyyy")
+
         Write-Host "existing zip mod date is $existZipModDate and folder mod date is $FolderModDate"
         $plat = Get-PlatformShortName #-path $sourceFolder
         $finalName = "$folderName" + "_$FolderModDate" + "_$plat.zip"
         $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
+
+        # I'm trying date string extract instead of query date last modified of zip to see if it makes more sense
+        $existZipModDate = Get-DestZipDateString $DestZipExist
+
+
         #$skipFlag = 0
         $TestFolderSize = Get-FolderSizeKB $subfolder
         Write-Host "Value of getkb is $TestFolderSize"
@@ -107,10 +153,7 @@ function Confirm-ZipFileReq {
             $buildZipList += $DestZipExist
         } 
 #        elseif ((Test-Path -Path $DestZipExist -eq $true) -and ( $DestZipExist.LastWriteTime.ToString("MMddyyyy") -gt $FolderModDate)) {
-#            
 #        } 
-            
-       
     }
     # Fill the hashtable
     for ($i = 0; $i -lt $buildSrcFolderList.Length; $i++) {
@@ -125,16 +168,12 @@ function Go-SteamZipper {
     # not sure write-progress is necessary but i'm trying it out
     $currentFolderIndex = 0
     $totalFolders = $ZipToCreate.Count
-    
-    
     foreach ($key in $ZipToCreate.Keys) {
         Write-Host "$key **maps to** $($ZipToCreate[$key])"
-    
+        $currentZip = Split-Path -Path $($ZipToCreate[$key]) -Leaf
         $currentFolderIndex++
 #        $percentComplete = ($currentFolderIndex / $totalFolders) * 100
-        Write-Host "Currently zipping zipping $($ZipToCreate[$key]) ($currentFolderIndex of $totalFolders)"
-        
-
+        Write-Host "Currently zipping source folder '$key' to destination zip file '$currentZip' ($currentFolderIndex of $totalFolders)"
 #        Write-Progress -Activity "Zipping files" `
 #                        -Status "Zipping $($key.Name)" `
 #                        -PercentComplete $percentComplete    
@@ -143,6 +182,9 @@ function Go-SteamZipper {
 }
 
 Go-SteamZipper
+
+
+
 #Confirm-ZipFileReq
 
 # $gamezipname = "Horizon_Chase_10152024_steam.zip"

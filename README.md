@@ -1,4 +1,4 @@
-# SteamZipper
+# Steam Zipper
 Loop through steam games folder, zipping each folder and giving it a unique name (PS edition).
 
 I'm not assuming this exact script hasn't already been done 
@@ -41,6 +41,14 @@ The entries on the left are what would be found in a path, like in *Program File
 **Now Implemented:** script deciding when to make the zip based on modified date. In other words if the source folder has a more recent modified date than the current zip file modified date, a new zip file is made using that date stamp.
 
 It doesn't delete the old zip file though, so I have to either add separate functionality or write a secondary script for finding and deciding what to do with zip files with the same name except for date stamp. Most likely just go with the one with the most recent date stamp.
+
+### 21 October 2024
+
+I found a rather obvious logic bug in my date comparison code today. It turns out I was comparing the folder last modified date to the folder last modified date. Although I was using -lt which is less than, not equal to or less than. So I'm not even sure why it was working in my testing. There's probably a further logic bug there I'm not catching. Using less than with a string type for instance. Is that typecasting to an integer silently so it works? Or am I missing something?
+
+I added a variable to define the date format at the top of the script. Simply change the variable value to your preferred format if (if that isn't month-day-year). Further instructions are in the script comments.
+
+*Anyway* I could probably add some additional polish to this script before starting on jobs. Something involving the *try* keyword. But instead I'll assume I can add that later if needed.
 
 ### 20 October 2024
 
