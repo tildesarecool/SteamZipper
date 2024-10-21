@@ -38,18 +38,20 @@ function Get-PlatformShortName {
 #$PlatName = Get-PlatformShortName -path $sourceFolder
 #Write-Host "platform name is $PlatName"
 
-function Get-DateFromZipName {
-    param (
-        [string]$zipFileName
-    )
-
-    $pattern = "\d{8}" # Matches an 8-digit date
-    if ($zipFileName -match $pattern) {
-        return $matches[0]
-    }
-    
-    return $null
-}
+# I realized i wasn't calling this function so there's no reason for it. 
+# i think i know how to re-write it in a better way using underscore as a delimeter anyway...
+# function Get-DateFromZipName {
+#     param (
+#         [string]$zipFileName
+#     )
+# 
+#     $pattern = "\d{8}" # Matches an 8-digit date
+#     if ($zipFileName -match $pattern) {
+#         return $matches[0]
+#     }
+#     
+#     return $null
+# }
 
 # function Get-FiileFolderModifiedDate {
 
@@ -124,14 +126,18 @@ function Go-SteamZipper {
     $currentFolderIndex = 0
     $totalFolders = $ZipToCreate.Count
     
+    
     foreach ($key in $ZipToCreate.Keys) {
         Write-Host "$key **maps to** $($ZipToCreate[$key])"
     
         $currentFolderIndex++
-        $percentComplete = ($currentFolderIndex / $totalFolders) * 100
-        Write-Progress -Activity "Zipping files" `
-                        -Status "Zipping $($key.Name)" `
-                        -PercentComplete $percentComplete    
+#        $percentComplete = ($currentFolderIndex / $totalFolders) * 100
+        Write-Host "Currently zipping zipping $($ZipToCreate[$key]) ($currentFolderIndex of $totalFolders)"
+        
+
+#        Write-Progress -Activity "Zipping files" `
+#                        -Status "Zipping $($key.Name)" `
+#                        -PercentComplete $percentComplete    
         Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key])
     }
 }
@@ -139,7 +145,10 @@ function Go-SteamZipper {
 Go-SteamZipper
 #Confirm-ZipFileReq
 
-
+# $gamezipname = "Horizon_Chase_10152024_steam.zip"
+# $zipdate = $gamezipname -split '_'
+# $justdate = $zipdate[-2]
+# Write-Host  $justdate
 
 #$digModDate = Get-FiileFolderModifiedDate
 #Write-Host "digModDate is $digModDate"

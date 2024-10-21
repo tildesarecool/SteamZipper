@@ -38,9 +38,15 @@ This is the hashtable I have for the platforms:
 
 The entries on the left are what would be found in a path, like in *Program Files (x86)*. The entries on the right are what are going to end up in the zip file name as mentioned above. You can of course add and delete platforms from this list. Just maintain the format of the hashtable (I could create a separate config file for platforms but it seems unnecessary). 
 
-**Still to implement:** script deciding when to make the zip based on modified date. In other words if the source folder has a more recent modified date than the current zip file modified date, a new zip file is made using that date stamp.
+**Now Implemented:** script deciding when to make the zip based on modified date. In other words if the source folder has a more recent modified date than the current zip file modified date, a new zip file is made using that date stamp.
 
 It doesn't delete the old zip file though, so I have to either add separate functionality or write a secondary script for finding and deciding what to do with zip files with the same name except for date stamp. Most likely just go with the one with the most recent date stamp.
+
+### 20 October 2024
+
+I commented out a function I wasn't using, at least for now.
+
+Also re-organized the Go-SteamZipper function to take out the write-progress attempt. Then aded a "zipping file of (file name) number of number". Well that still needs work. So not a lot of contribution. 
 
 ### 19 October 2024
 
