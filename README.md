@@ -7,7 +7,9 @@ doing this to try and backup my steam games. And practice
 PS scripting.
 
 USAGE:
-steamzipper-v2.ps1 \<source folder\> \<destination folder\>
+```steamzipper-v2.ps1 <source folder> <destination folder> <optional: enable-jobs> ```
+
+(enable-jobs is broken)
 
 The script attempts to identify a platform, like Steam, by identifying the name in the source folder path. 
 
@@ -44,11 +46,18 @@ It doesn't delete the old zip file though, so I have to either add separate func
 
 ### 21 October 2024
 
-I found a rather obvious logic bug in my date comparison code today. It turns out I was comparing the folder last modified date to the folder last modified date. Although I was using -lt which is less than, not equal to or less than. So I'm not even sure why it was working in my testing. There's probably a further logic bug there I'm not catching. Using less than with a string type for instance. Is that typecasting to an integer silently so it works? Or am I missing something?
+I found a rather obvious logic bug in my date comparison code today. It turns out I was comparing the folder last modified date to the folder last modified date. Although I was using -lt which is less than, not equal to or less than. So I'm not even sure why it was working in my testing. There's probably a further logic bug there I'm not catching. Using less than with a string type for instance. Is that typecasting to an integer silently so it works? Or am I missing something? 
+**Update:** see I couldn't let it go. Ended up type casting any/all 8 digit date codes to actual date objects then using the -lt comparison. I'm glad I went back and did that. String or integer 8 digit date code comparisons would never have worked.
 
 I added a variable to define the date format at the top of the script. Simply change the variable value to your preferred format if (if that isn't month-day-year). Further instructions are in the script comments.
 
 *Anyway* I could probably add some additional polish to this script before starting on jobs. Something involving the *try* keyword. But instead I'll assume I can add that later if needed.
+
+I don't know how many hours I spent on this script today. I'm going to go with "a lot". I tried to start the jobs part of it but made relatively little progress on it. I mean I learned a lot. But the jobs aren't really working.
+
+I added an optional parameter: jobs-enabled. So leave that parameter out and it still has the "normal" functionality (one zip at a time). Or add that parameter and glory in the scripts brokenness. The jobs function is only defined if the parameter is present. I'm sure I'm the first one to figure that out.
+
+It did of course occur to me at some point I don't *have* to try and manager all these zip jobs. I could loop through and slap **&** at the end of the line and try and keep up with displaying status that way. That seems *so much easier* that dealing with start-job.
 
 ### 20 October 2024
 
