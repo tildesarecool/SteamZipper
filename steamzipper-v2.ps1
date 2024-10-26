@@ -20,6 +20,15 @@ param (
 
 #Write-Host "source folder is $sourceFolder and destination folder is $destinationFolder"
 
+# hopefully this is straight forward: 
+# MM is month, dd is day and yyyy is year
+# so if you wanted day-month-year you'd change this to
+# ddMMyyyy (in quotes)
+# DON'T RUN IT ONCE AND CHANGE IT as the script isn't 
+# smart enough to recognize a different format 
+# also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
+$PreferredDateFormat = "MMddyyyy"
+
 if (-not $sourceFolder -or -not $destinationFolder) {
     Write-Host "Error: Source folder and destination folder must be specified."
     exit 1
@@ -43,14 +52,6 @@ function Define-Jobs {
 
 
 
-# hopefully this is straight forward: 
-# MM is month, dd is day and yyyy is year
-# so if you wanted day-month-year you'd change this to
-# ddMMyyyy (in quotes)
-# DON'T RUN IT ONCE AND CHANGE IT as the script isn't 
-# smart enough to recognize a different format 
-# also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
-$PreferredDateFormat = "MMddyyyy"
 
 function Get-PlatformShortName {
 #    param (
@@ -243,162 +244,3 @@ elseif (Define-Jobs) {
 }
 
 
-
-#Confirm-ZipFileReq
-
-# $gamezipname = "Horizon_Chase_10152024_steam.zip"
-# $zipdate = $gamezipname -split '_'
-# $justdate = $zipdate[-2]
-# Write-Host  $justdate
-
-#$digModDate = Get-FiileFolderModifiedDate
-#Write-Host "digModDate is $digModDate"
-#
-#$PlatName = Get-PlatformShortName -path $sourceFolder
-#Write-Host "platform name is $PlatName"
-#
-#$existingZipDate = Get-DateFromZipName -zipFileName Outzone_10152024_steam.zip
-#Write-Host "existing zip date is $existingZipDate"
-#
-#$folderName = "dig dog"
-#$zipName = $folderName -replace ' ', '_'
-#Write-Host "zip file name is $zipName"
-#
-#$zipFileName = "${zipName}_${existingZipDate}_${PlatName}.zip"
-#Write-Host "generated zip file name is $zipFileName"
-#
-#Write-Host "for the game outzone, the final zip file name will be:"
-#$zipNameAssemble = "Horizon_Chase" + "_" + $digModDate + "_" + $PlatName + ".zip"
-#Write-Host "$zipNameAssemble"
-#
-#
-#if (Get-DateFromZipName -zipFileName $zipNameAssemble -eq $digModDate) {
-#    Write-Host "value of zipNameAssemble is $zipNameAssemble and file mod date is $digModDate"
-#    Write-Host "there's a match"
-#} else {
-#    Write-Host "_there was not a match_"
-#    Write-Host "value of zipNameAssemble is $zipNameAssemble and file mod date is $digModDate"
-#}
-#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
-#
-#    # Get the last modified date of the folder
-#    $folderModifiedDate = $_.LastWriteTime
-#    $dateStamp = $folderModifiedDate.ToString("MMddyyyy") # Format the date as MMDDYYYY
-#
-#}
-
-
-########################################################################
-#function Compress-Subfolders {
-#    param (
-#        [string]$sourceFolderPath,
-#        [string]$destinationFolderPath,
-#        [string]$folderName,
-#        [string]$platformShortName,
-#        [string]$dateStamp
-#    )
-#
-#    $zipFileName = "${folderName}_${dateStamp}_${platformShortName}.zip"
-#    $zipFilePath = Join-Path -Path $destinationFolderPath -ChildPath $zipFileName
-#
-#    if ($platformShortName -eq "") {
-#        $platformShortName = Get-PlatformShortName
-#        Write-Host "platformShortName is $platformShortName"
-#    }
-#
-#    # check if zip file already exists
-##    if (Test-Path -Path $zipFileName) {
-#    if (1 -eq 1) {
-#        # extract date from existing zip file name and compare with fodler last modified date
-#        $existingDate = ($zipFileName -split "_")[1]
-#        $folderModifiedDate = (Get-Item $sourceFolderPath).LastWriteTime.ToString("MMddyyyy")
-#
-#        Write-Host "zip file name is $zipFileName and zip file path is $zipFilePath"
-#        Write-Host "existing date is $existingDate and folder modified date is $folderModifiedDate"
-#        Write-Host "source folder path is $sourceFolderPath and destionation folder path is $destinationFolderPath"
-#
-#        #        
-#
-#        if ($existingDate -eq $folderModifiedDate) {
-#            Write-Host "Skipping $folderName (no changes since $existingDate)"
-#            return
-#        } else {
-#            Write-Host "Updating folderName (folder modified after $existingDate)"
-#        }
-#    }
-#    # create zip file
-#    Compress-Archive -Path "$sourceFolderPath\*" -DestinationPath $zipFilePath -Force
-#    Write-Host "compress-archive command here"
-#    Write-Host "created/updated: $zipFileName"
-#}
-#
-#function Get-FolderInfoAndZip {
-#    param (
-#        [string]$sourceFolder,
-#        [string]$destinationFolder
-#    )
-#
-#    if (-not (Test-Path -Path $destinationFolder)) {
-#        New-Item -Path $destinationFolder -ItemType Directory
-#    }
-#
-#    $folders = Get-ChildItem -Path $sourceFolder -Directory
-#    $totalFolders = $folders.Count
-#
-#    foreach ($subfolder in $folders) {
-#        $folderName = $subfolder.Name -replace ' ', '_' 
-#        $folderModifiedDate = (Get-Item $subfolder.FullName).LastWriteTime.ToString("MMddyyyy")
-#        $platformShortName = Get-PlatformShortName -path $subfolder.FullName
-#        
-#        param ($src, $dest, $fname, $platform, $dStamp)
-##
-#        Compress-Subfolders -sourceFolderPath $src, -destinationFolderPath $dest -folderName $fname -platformShortName $platform -dateStamp $dStamp
-#
-#        Write-Host "folderName is $folderName, foldermodifieddate is $folderModifiedDate and platformShortName is $platformShortName"
-#    }
-#
-#
-#}
-#
-#Get-FolderInfoAndZip -sourceFolder $sourceFolder -destinationFolder $destinationFolder
-
-
-# -sourceFolder $sourceFolder -destinationFolder $destinationFolder
-
-#if (-not (Test-Path -Path $destinationFolder)) {
-#    New-Item -Path $destinationFolder -ItemType Directory
-#}
-
-#$folders = Get-ChildItem -path $sourceFolder -Directory
-##$totalFolders = $folders.Count
-#
-#foreach ($subfolder in $folders) {
-#    $platformShortName = Get-PlatformShortName -path $subfolder.FullName
-#}
-
-# Write-Host "the platform is $platformShortName" # (successfully parsed platform)
