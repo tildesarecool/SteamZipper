@@ -1,10 +1,7 @@
 # Steam Zipper
 Loop through steam games folder, zipping each folder and giving it a unique name (PS edition).
 
-I'm not assuming this exact script hasn't already been done 
-in many other languages many, many times before. I'm just 
-doing this to try and backup my steam games. And practice 
-PS scripting.
+I'm not assuming this exact script hasn't already been done in many other languages many, many times before. I'm just doing this to try and backup my steam games. And practice PS scripting.
 
 USAGE:
 ```steamzipper-v2.ps1 <source folder> <destination folder> <optional: enable-jobs> ```
@@ -38,11 +35,37 @@ This is the hashtable I have for the platforms:
     }
 ```
 
-The entries on the left are what would be found in a path, like in *Program Files (x86)*. The entries on the right are what are going to end up in the zip file name as mentioned above. You can of course add and delete platforms from this list. Just maintain the format of the hashtable (I could create a separate config file for platforms but it seems unnecessary). 
+The entries on the left are what would be found in a path, like in *Program Files (x86)*. The entries on the 
+right are what are going to end up in the zip file name as mentioned above. You can of course add and delete 
+platforms from this list. Just maintain the format of the hashtable (I could create a separate config file for 
+platforms but it seems unnecessary). 
 
-**Now Implemented:** script deciding when to make the zip based on modified date. In other words if the source folder has a more recent modified date than the current zip file modified date, a new zip file is made using that date stamp.
+### Installation
 
-It doesn't delete the old zip file though, so I have to either add separate functionality or write a secondary script for finding and deciding what to do with zip files with the same name except for date stamp. Most likely just go with the one with the most recent date stamp.
+Since this is a single PowerShell script, that is the only the required. You can view the source "raw" and copy/paste into notepad, or download a zip file from the green "code" button or use the tags link and click on *v0.2.0-beta.1* to find a zip file. Or just clone the repo. Any of those ways will get you the script file which you would just run from PS console. So far as I know local admin privileges should not be required. 
+
+As for permissions to run PS1 files in general that's between you and your PC administrator.
+
+If I polish it more (and add an ascii art based logo, obviously) I might try and make a "package" for use with PSGallery etc. That might be far off.
+
+### Feature Wishlist 
+
+- Zipping multiple files at once using a job pool (like dogpool but uglier)
+- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder
+  - I could use that saved file as a config file for a match script that selective unzips the folder(s)...?
+- A companion script that as a batch or selectively on unzips the games to a destination
+- more/better error checking and dealing with the errors
+- re-write that gnarly if condition so it looks a lot better and is easier to follow
+- Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
+
+Might be a little much just for a thing that zips some folders.
+
+
+
+---
+
+
+
 
 ### 21 October 2024
 
