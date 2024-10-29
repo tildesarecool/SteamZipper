@@ -64,6 +64,14 @@ Might be a little much just for a thing that zips some folders.
 
 ---
 
+### 29 October 2024
+
+I implemented the new date function today. The script is running as it did previously so I'm calling this a success.
+
+It did occur to me I don't really want to deal with duplicate zips. I've gone back and forth on my thinking with this but now I think I've about made up my mind: if there's an existing zip file in the destination and the script determines a new zip file is necessary the existing zip should be deleted and a new one created. The new one will have a different name so it doesn't really matter which happens first. I can add a flag to keep duplicates if that's really necessary. I think it makes more sense to default to deleting duplicates though. 
+
+Or maybe I'm coming up with random changes because I want to avoid the jobs implementation. Because it will probably take a long time and be really anoyingly difficult.
+
 ### 28 October 2024
 
 Today I actually re-wrote the function for handling dates: pass in the path of either a folder or a zip file and back out a date object. I didn't re-implement to actually to use this newly designed function, but it seems to be working correctly in testing. 

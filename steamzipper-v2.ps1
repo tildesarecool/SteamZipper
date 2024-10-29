@@ -31,7 +31,7 @@ param (
 # also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
 $PreferredDateFormat = "MMddyyyy"
 
-# Specify the folder size limit (in KB) (see function Get-FolderSizeKB below)
+# Specify the folder minimum size limit (in KB) (see function Get-FolderSizeKB below)
 # this constant is the minimum size a folder can contain before it will be backed up
 # Or said another way "no reason to backup/zip a 0KB sized folder"
 # I just set this arbitrarily to 50KBs - adjust this number as you see fit
@@ -112,22 +112,6 @@ function Get-PlatformShortName {
 #$PlatName = Get-PlatformShortName -path $sourceFolder
 #Write-Host "platform name is $PlatName"
 
-# I realized i wasn't calling this function so there's no reason for it. 
-# i think i know how to re-write it in a better way using underscore as a delimeter anyway...
-# function Get-DateFromZipName {
-#     param (
-#         [string]$zipFileName
-#     )
-# 
-#     $pattern = "\d{8}" # Matches an 8-digit date
-#     if ($zipFileName -match $pattern) {
-#         return $matches[0]
-#     }
-#     
-#     return $null
-# }
-
-# function Get-FiileFolderModifiedDate {
 
 function Get-FolderSizeKB {
     param (
@@ -148,25 +132,6 @@ function Get-FolderSizeKB {
     return $false
 }
 
-#function Get-DestZipDate {
-#    param (
-#        [Parameter(Mandatory=$true)]
-#        $zipFileName
-#    )
-#    $splitdate = $zipFileName -split "_"
-#    if ($splitdate[-2] ) {
-#        $justdate = $splitdate[-2]
-#        $justdate = [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
-##        Write-Host "Inside get-destzipdate, jusdate value is $justdate"
-#        return $justdate    
-#    } 
-#    else {
-#        return 0
-#    }
-#
-#    #Write-Host "justdate is $justdate" # debugging thing
-#    #return $justdate    
-#}
 
 function Get-FileDateStamp {
         # $FileName is either a path to a folder or the zip file name. 
@@ -196,7 +161,7 @@ function Get-FileDateStamp {
 #        }
         $ext = $item -split '\.' 
         $ext = $ext[-1]
-        if ($ext -eq "zip") {
+        if ($ext -eq "zip") { # this may not be necessary. different extensions could be added though. So I'll keeep it.
             $justdate = $item -split "_"
             if ($justdate.Length -ge 2) {
                 $justdate = $justdate[-2]
@@ -209,9 +174,9 @@ function Get-FileDateStamp {
     return $null
 }
 
-$getDate = Get-FileDateStamp "P:\steamzipper\backup\Dig_Dog_10152024_steam.zip"
+#$getDate = Get-FileDateStamp "P:\steamzipper\backup\Dig_Dog_10152024_steam.zip"
 #$getDate = Get-FileDateStamp "P:\steamzipper\steam temp storage\Horizon Chase"
-Write-Host "Value returned for the function is the date $getDate"
+#Write-Host "Value returned for the function is the date $getDate"
 
 # Get-DestZipDateString "Horizon_Chase_10152024_steam.zip" # seems to work with test data
 
@@ -236,13 +201,15 @@ function Confirm-ZipFileReq {
         $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
 
         # I'm trying date string extract instead of query date last modified of zip to see if it makes more sense
-        $existZipModDate = Get-DestZipDate $DestZipExist
+        #$existZipModDate = Get-DestZipDate $DestZipExist
+        $existZipModDate = Get-FileDateStamp $DestZipExist
 
 
         #$skipFlag = 0
         $TestFolderSize = Get-FolderSizeKB $subfolder
         #Write-Host "Value of getkb is $TestFolderSize"
-        $ConvertedFolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
+#        $ConvertedFolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
+        $ConvertedFolderModDate = Get-FileDateStamp $FolderModDate # [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
 #        Write-Host "ConvertedFolderModDate value is $ConvertedFolderModDate"
         if (-not (Test-Path -Path $DestZipExist) -or ((Test-Path -Path $DestZipExist  ) `
           -and ( $existZipModDate -lt $ConvertedFolderModDate)) -and $TestFolderSize)  {
@@ -288,7 +255,7 @@ if (-not (Define-Jobs) ) {
         }
     }
 #############################################################
-    #    Go-SteamZipper-Jobless
+Go-SteamZipper-Jobless
 #############################################################
 }
 elseif (Define-Jobs) {
@@ -319,7 +286,9 @@ elseif (Define-Jobs) {
     }
 
 #    Write-Host "Jobs enabled. Value of getMax is $getMax."
+#############################################################
     Go-SteamZipper-Jobbed
+#############################################################
 }
 
 
