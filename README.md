@@ -64,8 +64,9 @@ Might be a little much just for a thing that zips some folders.
 
 ---
 
+### 28 October 2024
 
-
+Today I actually re-wrote the function for handling dates: pass in the path of either a folder or a zip file and back out a date object. I didn't re-implement to actually to use this newly designed function, but it seems to be working correctly in testing. 
 
 ### 21 October 2024
 

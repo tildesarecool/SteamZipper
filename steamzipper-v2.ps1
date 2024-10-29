@@ -18,6 +18,8 @@ param (
     [string]$jobs
 )
 
+
+
 #Write-Host "source folder is $sourceFolder and destination folder is $destinationFolder"
 
 # hopefully this is straight forward: 
@@ -29,10 +31,40 @@ param (
 # also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
 $PreferredDateFormat = "MMddyyyy"
 
+# Specify the folder size limit (in KB) (see function Get-FolderSizeKB below)
+# this constant is the minimum size a folder can contain before it will be backed up
+# Or said another way "no reason to backup/zip a 0KB sized folder"
+# I just set this arbitrarily to 50KBs - adjust this number as you see fit
+$sizeLimitKB = 50 
+Set-Variable -Name $sizeLimitKB -Option ReadOnly
+
+
+
 if (-not $sourceFolder -or -not $destinationFolder) {
     Write-Host "Error: Source folder and destination folder must be specified."
     exit 1
 }
+
+if (! (Test-Path $sourceFolder) ) {
+    Write-Error -message "Source folder $sourceFolder not found, exiting..."
+    exit 1
+}
+
+# Create the destination folder if it doesn't exist
+if (-not (Test-Path -Path $destinationFolder)) {
+    try {
+        New-Item -Path $destinationFolder -ItemType Directory -ErrorAction Stop
+        Write-Host "Successfully created the folder: $destinationFolder"
+    }
+    catch {
+        # I have yet to test to 'catch' statement. I'll just assume it works
+        Write-Host "Failed to create the destination folder at: $destinationFolder" -ForegroundColor Red
+        Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
+        exit 1
+        
+    }
+}
+
 
 function Define-Jobs {
     if ( ($jobs -eq "enable-jobs") -or ($jobs -eq "enablejobs") )  {
@@ -51,8 +83,6 @@ function Define-Jobs {
 }
 
 
-
-
 function Get-PlatformShortName {
 #    param (
 #        [string]$path
@@ -69,6 +99,7 @@ function Get-PlatformShortName {
         "Steam"        = "steam"
         #"Origin"        = "origin"
     }
+    Set-Variable -Name $platforms -Option ReadOnly
     # fortunately, the -like parameter is NOT case sensitive by default
     foreach ($platform in $platforms.Keys) {
         if ($path -like "*$platform*") {
@@ -100,49 +131,87 @@ function Get-PlatformShortName {
 
 function Get-FolderSizeKB {
     param (
-        $folderPath
+        [string]$folderPath
     )
     # Specify the folder path and the size limit (in KB)
-    $sizeLimitKB = 50
+    # $sizeLimitKB now defined as constant at top of script
+    $FolderSizeKBTracker = 0
 
-    # Get the total size of the folder (recursively)
-    $totalSize = (Get-ChildItem -Path $folderPath -Recurse -File | Measure-Object -Property Length -Sum).Sum
+    foreach ($file in Get-ChildItem -Path $folderPath -Recurse -File) {
+        $FolderSizeKBTracker += $file.Length / 1KB
 
-    # Convert size to KB
-    $totalSizeKB = [math]::Round($totalSize / 1KB, 2)
-
-    # Output the total size of the folder
-    #Write-Host "Total folder size: $totalSizeKB KB"
-
-    # Compare the total size to the size limit
-    if ($totalSizeKB -gt $sizeLimitKB) {
-        #Write-Host "The folder size is greater than $sizeLimitKB KB."
-        return $true
-    } else {
-        #Write-Host "The folder size is less than or equal to $sizeLimitKB KB."
-        return $false
+        # exit if size limit exceeded
+        if ($FolderSizeKBTracker -ge $sizeLimitKB) {
+            return $true
+        }
     }
-
+    return $false
 }
 
-function Get-DestZipDate {
+#function Get-DestZipDate {
+#    param (
+#        [Parameter(Mandatory=$true)]
+#        $zipFileName
+#    )
+#    $splitdate = $zipFileName -split "_"
+#    if ($splitdate[-2] ) {
+#        $justdate = $splitdate[-2]
+#        $justdate = [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
+##        Write-Host "Inside get-destzipdate, jusdate value is $justdate"
+#        return $justdate    
+#    } 
+#    else {
+#        return 0
+#    }
+#
+#    #Write-Host "justdate is $justdate" # debugging thing
+#    #return $justdate    
+#}
+
+function Get-FileDateStamp {
+        # $FileName is either a path to a folder or the zip file name. 
+        # must pass in whole path for the folder but just a file name is fine for zip
+        # so the folder i do the lastwritetime.tostring to get the date
+        # and zip file name parse to date code with the [-2]
     param (
-        $zipFileName
+        [Parameter(Mandatory=$true)]
+        $FileName
     )
-    $splitdate = $zipFileName -split "_"
-    if ($splitdate[-2] ) {
-        $justdate = $splitdate[-2]
-        $justdate = [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
-#        Write-Host "Inside get-destzipdate, jusdate value is $justdate"
-        return $justdate    
-    } 
-    else {
-        return 000
-    }
 
-    #Write-Host "justdate is $justdate" # debugging thing
-    #return $justdate    
+    $item = $FileName
+    $justdate = ""
+
+    if (Test-Path -Path $item -PathType Container) {
+        # this may be a little redundant but I'm just going to go with it
+        $FolderModDate = (Get-Item -Path $FileName).LastWriteTime.ToString($PreferredDateFormat)
+        $FolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
+        if ($FolderModDate -is [datetime]) {
+            return $FolderModDate
+        }
+    } elseif  (Test-Path -Path $item -PathType Leaf) {
+
+        # only get here if parameter is not a folder e.g. a file
+#        if ( $item -isnot [string] ) {
+#            $item = [string]$item
+#        }
+        $ext = $item -split '\.' 
+        $ext = $ext[-1]
+        if ($ext -eq "zip") {
+            $justdate = $item -split "_"
+            if ($justdate.Length -ge 2) {
+                $justdate = $justdate[-2]
+                if ($justdate.Length -eq 8) {
+                    return [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
+                }
+            }
+        }
+    }
+    return $null
 }
+
+$getDate = Get-FileDateStamp "P:\steamzipper\backup\Dig_Dog_10152024_steam.zip"
+#$getDate = Get-FileDateStamp "P:\steamzipper\steam temp storage\Horizon Chase"
+Write-Host "Value returned for the function is the date $getDate"
 
 # Get-DestZipDateString "Horizon_Chase_10152024_steam.zip" # seems to work with test data
 
@@ -203,14 +272,24 @@ if (-not (Define-Jobs) ) {
             $currentZip = Split-Path -Path $($ZipToCreate[$key]) -Leaf
             $currentFolderIndex++
     #        $percentComplete = ($currentFolderIndex / $totalFolders) * 100
+
+            # attempt to deal with error message 
+            try {
             Write-Host "Currently zipping source folder '$key' to destination zip file '$currentZip' ($currentFolderIndex of $totalFolders)"
     #        Write-Progress -Activity "Zipping files" `
     #                        -Status "Zipping $($key.Name)" `
     #                        -PercentComplete $percentComplete    
             Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key])
+            }
+            catch {
+                Write-Host "Failed to create the destination zip file $currentZip"
+                Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
         }
     }
-    Go-SteamZipper-Jobless
+#############################################################
+    #    Go-SteamZipper-Jobless
+#############################################################
 }
 elseif (Define-Jobs) {
     function Go-SteamZipper-Jobbed {
@@ -223,7 +302,7 @@ elseif (Define-Jobs) {
         
         foreach ($key in $ZipToCreate.Keys) {
             $currentZip = Split-Path -Path $($ZipToCreate[$key]) -Leaf # just zip name for the providing information to the user
-            $currentFolderIndex++ # increment zip job counter. probably don't needs for job version
+            $currentFolderIndex++ # increment zip job counter. probably don't need for job version
             while ($jobList.Count -ge $getMax) {
                 # while the number jobs is less than or equal to my set max jobs
                 # I think I understand what this does. Maybe.
