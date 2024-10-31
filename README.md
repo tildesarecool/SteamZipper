@@ -46,7 +46,7 @@ Since this is a single PowerShell script, that is the only the required. You can
 
 As for permissions to run PS1 files in general that's between you and your PC administrator.
 
-If I polish it more (and add an ascii art based logo, obviously) I might try and make a "package" for use with PSGallery etc. That might be far off.
+If I polish it more (and add an ascii art based logo, obviously) I might try and make a "package" for use with PSGallery etc. That is definitely far off.
 
 ### Feature Wishlist 
 
@@ -57,6 +57,8 @@ If I polish it more (and add an ascii art based logo, obviously) I might try and
 - more/better error checking and dealing with the errors
 - re-write that gnarly if condition so it looks a lot better and is easier to follow
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
+- Some semblance of dealing with duplicate zips via parameter or whatever
+- an argument to select a compression level besides the default
 
 Might be a little much just for a thing that zips some folders.
 
@@ -71,6 +73,11 @@ I implemented the new date function today. The script is running as it did previ
 It did occur to me I don't really want to deal with duplicate zips. I've gone back and forth on my thinking with this but now I think I've about made up my mind: if there's an existing zip file in the destination and the script determines a new zip file is necessary the existing zip should be deleted and a new one created. The new one will have a different name so it doesn't really matter which happens first. I can add a flag to keep duplicates if that's really necessary. I think it makes more sense to default to deleting duplicates though. 
 
 Or maybe I'm coming up with random changes because I want to avoid the jobs implementation. Because it will probably take a long time and be really anoyingly difficult.
+
+Good news and bad news. Or just neutral then:
+I'm implmementing parallel zipping with jobs but I'm using a form of ```ForEach-Object``` that requires PS 7. Only really an issue if you're unable to install the latest PS for some reason. 
+
+On a separate note, [the documentation for ForEach-Object on the Microsoft developer site](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/foreach-object?view=powershell-7.4) is actually really good.
 
 ### 28 October 2024
 
@@ -89,7 +96,7 @@ I don't know how many hours I spent on this script today. I'm going to go with "
 
 I added an optional parameter: jobs-enabled. So leave that parameter out and it still has the "normal" functionality (one zip at a time). Or add that parameter and glory in the scripts brokenness. The jobs function is only defined if the parameter is present. I'm sure I'm the first one to figure that out.
 
-It did of course occur to me at some point I don't *have* to try and manager all these zip jobs. I could loop through and slap **&** at the end of the line and try and keep up with displaying status that way. That seems *so much easier* that dealing with start-job.
+It did of course occur to me at some point I don't *have* to try and manage all these zip jobs. I could loop through and slap **&** at the end of the line and try and keep up with displaying status that way. That seems *so much easier* than dealing with start-job.
 
 ### 20 October 2024
 

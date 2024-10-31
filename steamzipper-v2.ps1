@@ -89,7 +89,7 @@ function Get-PlatformShortName {
 #    )
 
     $path = $sourceFolder
-    # additional platforms (xbox, origin, uplay, etc) can be added to the table below
+    # additional platforms (xbox (Windows store?), origin, uplay, etc) can be added to the table below
     # easiest way would be to copy/paste an existing line
     # and modify it left/right (sample origin below. remove # to enable)
     $platforms = @{
@@ -197,7 +197,7 @@ function Confirm-ZipFileReq {
 
 #        Write-Host "existing zip mod date is $existZipModDate" # and folder mod date is $FolderModDate"
         $plat = Get-PlatformShortName #-path $sourceFolder
-        $finalName = "$folderName" + "_$FolderModDate" + "_$plat.zip"
+        $finalName = "$folderName" + "_$FolderModDate" + "_$plat.zip" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
         $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
 
         # I'm trying date string extract instead of query date last modified of zip to see if it makes more sense
@@ -211,12 +211,23 @@ function Confirm-ZipFileReq {
 #        $ConvertedFolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
         $ConvertedFolderModDate = Get-FileDateStamp $FolderModDate # [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
 #        Write-Host "ConvertedFolderModDate value is $ConvertedFolderModDate"
-        if (-not (Test-Path -Path $DestZipExist) -or ((Test-Path -Path $DestZipExist  ) `
-          -and ( $existZipModDate -lt $ConvertedFolderModDate)) -and $TestFolderSize)  {
-            $buildSrcFolderList += $subfolder
-#            Write-Host "folderdatemod is $folderModDate and destzipexist mod date is " + $DestZipExist.LastWriteTime.ToString('MMddyyyy')
-            $buildZipList += $DestZipExist
+
+        $DoesZipExist = Test-Path -Path $DestZipExist # bool that determines if the zip exists, yes/no
+
+        if (-not ($DoesZipExist) -or  (  `
+        ($DoesZipExist  ) -and ( $existZipModDate -lt $ConvertedFolderModDate) `
+        
+        ) -and $TestFolderSize)  {
+           $buildSrcFolderList += $subfolder
+           $buildZipList += $DestZipExist
         } 
+
+#        if (-not (Test-Path -Path $DestZipExist) -or ((Test-Path -Path $DestZipExist  ) `
+#          -and ( $existZipModDate -lt $ConvertedFolderModDate)) -and $TestFolderSize)  {
+#            $buildSrcFolderList += $subfolder
+##            Write-Host "folderdatemod is $folderModDate and destzipexist mod date is " + $DestZipExist.LastWriteTime.ToString('MMddyyyy')
+#            $buildZipList += $DestZipExist
+#        } 
 #        elseif ((Test-Path -Path $DestZipExist -eq $true) -and ( $DestZipExist.LastWriteTime.ToString("MMddyyyy") -gt $FolderModDate)) {
 #        } 
     }
@@ -224,8 +235,9 @@ function Confirm-ZipFileReq {
     for ($i = 0; $i -lt $buildSrcFolderList.Length; $i++) {
         $ZipFoldersTable[$buildSrcFolderList[$i]] = $buildZipList[$i]
     }
+    
     return $ZipFoldersTable
-}
+} # end of the Confirm-ZipFileReq function. if that wasn't clear.
 
 if (-not (Define-Jobs) ) {
     function Go-SteamZipper-Jobless {
