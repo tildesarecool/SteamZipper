@@ -6,6 +6,38 @@
 # https://github.com/santisq/PSCompression/tree/main
 # (i found it on the PS gallery https://www.powershellgallery.com/packages/PSCompression/2.0.7)
 
+# set default for max number of parallel jobs
+# e.g. the number of zip operations happening at once
+# you can adjust this by appending things like 
+# * 2 or / 2 
+# to increase/decrease this 
+$Global:maxJobs = [System.Environment]::ProcessorCount 
+#Set-Variable -Name "maxJobs" -value ([System.Environment]::ProcessorCount ) -Scope global -Option ReadOnly
+
+# hopefully this is straight forward: 
+# MM is month, dd is day and yyyy is year
+# so if you wanted day-month-year you'd change this to
+# ddMMyyyy (in quotes)
+# DON'T RUN IT ONCE AND CHANGE IT as the script isn't 
+# smart enough to recognize a different format (the file names will be off too)
+# also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
+#$Global:PreferredDateFormat = "MMddyyyy"
+Set-Variable -Name "PreferredDateFormat" -value ("MMddyyyy") -Scope global -Option ReadOnly
+
+# Specify the folder minimum size limit (in KB) (see function Get-FolderSizeKB below)
+# this constant is the minimum size a folder can contain before it will be backed up
+# Or said another way "no reason to backup/zip a 0KB sized folder"
+# I just set this arbitrarily to 50KBs - adjust this number as you see fit
+#$Global:sizeLimitKB = 50 
+Set-Variable -Name "sizeLimitKB" -Value 50 -Scope global -Option ReadOnly
+
+
+# This is more of a place holder. In case compress-archive ever supports more compression formats than zip (like 7z, rar, gzip etc)
+# could also use it in conjuction with a compress-archive alternative like 7zip CLI which supports compression to other formats
+# I'm trying to be future-forward thinking and/or modular but I may be adding additional complexity for no good reason
+Set-Variable -Name "CompressionExtension" -Value "zip" -Scope global -Option ReadOnly
+
+
 # Script parameters (this should be the very first thing in the script)
 param (
     [Parameter(Mandatory=$true)]
@@ -15,30 +47,11 @@ param (
     [string]$destinationFolder,  # Destination folder for the zip files
 
     [Parameter(Mandatory=$false)] # Optional parameter with a default value
-    [string]$jobs
+    [string]$jobs,
+
+    [Parameter(Mandatory=$false)] # Optional parameter: keep outdated zip file with old date code in name along side new/updated zip file.
+    [string]$KeepDuplicateZips  
 )
-
-
-
-#Write-Host "source folder is $sourceFolder and destination folder is $destinationFolder"
-
-# hopefully this is straight forward: 
-# MM is month, dd is day and yyyy is year
-# so if you wanted day-month-year you'd change this to
-# ddMMyyyy (in quotes)
-# DON'T RUN IT ONCE AND CHANGE IT as the script isn't 
-# smart enough to recognize a different format 
-# also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
-$PreferredDateFormat = "MMddyyyy"
-
-# Specify the folder minimum size limit (in KB) (see function Get-FolderSizeKB below)
-# this constant is the minimum size a folder can contain before it will be backed up
-# Or said another way "no reason to backup/zip a 0KB sized folder"
-# I just set this arbitrarily to 50KBs - adjust this number as you see fit
-$sizeLimitKB = 50 
-Set-Variable -Name $sizeLimitKB -Option ReadOnly
-
-
 
 if (-not $sourceFolder -or -not $destinationFolder) {
     Write-Host "Error: Source folder and destination folder must be specified."
@@ -66,21 +79,6 @@ if (-not (Test-Path -Path $destinationFolder)) {
 }
 
 
-function Define-Jobs {
-    if ( ($jobs -eq "enable-jobs") -or ($jobs -eq "enablejobs") )  {
-        # this should skip if $jobs isn't specific or something not "enable-jobs"/enablejobs is passed in
-        # and the -eq should default to non-case sensitive. So that's a relief.
-
-            # this function and therefore variable is only defined if jobs is enabled from the execution of the script
-            # ProcessorCount should be considered a starting off point. You could make it ProcessorCount  * 2
-            # or ProcessorCount / 2 (assuming an even number of CPU cores/threads)
-            # zip operations are most likely to run into a CPU bottleneck (unless you have a really slow storage device?)
-            $maxJobs = [System.Environment]::ProcessorCount 
-    #        $jobslist = @()
-            return $maxJobs
-        }
-    return $false
-}
 
 
 function Get-PlatformShortName {
@@ -143,35 +141,47 @@ function Get-FileDateStamp {
         $FileName
     )
 
+    # this is something of an "undocumented feature". Sending in random date codes in 8-digit format returns a date object.
+    # I don't know why, just seemed to match the vibe of the function so why not?
+    if (   ($FileName -is [string]) -and ($FileName.Length -eq 8)   ) {
+        try {
+            $datecode = $FileName
+            return [datetime]::ParseExact($datecode,$PreferredDateFormat,$null)
+        } catch {
+            Write-Output "Warning: Invalid DateCode format. Expected format is $PreferredDateFormat."
+            return $null
+        }
+    }
+
     $item = $FileName
     $justdate = ""
 
     if (Test-Path -Path $item -PathType Container) {
         # this may be a little redundant but I'm just going to go with it
-        $FolderModDate = (Get-Item -Path $FileName).LastWriteTime.ToString($PreferredDateFormat)
+        $FolderModDate = (Get-Item -Path $item).LastWriteTime.ToString($PreferredDateFormat)
         $FolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
         if ($FolderModDate -is [datetime]) {
             return $FolderModDate
         }
     } elseif  (Test-Path -Path $item -PathType Leaf) {
-
-        # only get here if parameter is not a folder e.g. a file
-#        if ( $item -isnot [string] ) {
-#            $item = [string]$item
-#        }
-        $ext = $item -split '\.' 
-        $ext = $ext[-1]
-        if ($ext -eq "zip") { # this may not be necessary. different extensions could be added though. So I'll keeep it.
-            $justdate = $item -split "_"
-            if ($justdate.Length -ge 2) {
-                $justdate = $justdate[-2]
-                if ($justdate.Length -eq 8) {
-                    return [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
+        try {
+            $ext = $item -split '\.' 
+            $ext = $ext[-1]
+            if ($ext -eq $CompressionExtension) { # this may not be necessary. different extensions could be added though. So I'll keeep it.
+                $justdate = $item -split "_"
+                if ($justdate.Length -ge 2) {
+                    $justdate = $justdate[-2]
+                    if ($justdate.Length -eq 8) {
+                        return [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
+                    }
                 }
             }
         }
-    }
-    return $null
+        catch {
+            Write-Host "Unable to determine or convert to date object from value $justdate"
+            return $null
+         }
+    }   
 }
 
 #$getDate = Get-FileDateStamp "P:\steamzipper\backup\Dig_Dog_10152024_steam.zip"
@@ -180,7 +190,7 @@ function Get-FileDateStamp {
 
 # Get-DestZipDateString "Horizon_Chase_10152024_steam.zip" # seems to work with test data
 
-function Confirm-ZipFileReq {
+function BuildZipTable  {
     $folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
     #Write-Host "value of folders is $folders"
     $ZipFoldersTable = @{}
@@ -197,7 +207,7 @@ function Confirm-ZipFileReq {
 
 #        Write-Host "existing zip mod date is $existZipModDate" # and folder mod date is $FolderModDate"
         $plat = Get-PlatformShortName #-path $sourceFolder
-        $finalName = "$folderName" + "_$FolderModDate" + "_$plat.zip" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
+        $finalName = "$folderName" + "_$FolderModDate" + "_$plat.$CompressionExtension" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
         $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
 
         # I'm trying date string extract instead of query date last modified of zip to see if it makes more sense
@@ -237,11 +247,11 @@ function Confirm-ZipFileReq {
     }
     
     return $ZipFoldersTable
-} # end of the Confirm-ZipFileReq function. if that wasn't clear.
+} # end of the BuildZipTable  function. if that wasn't clear.
 
 if (-not (Define-Jobs) ) {
     function Go-SteamZipper-Jobless {
-        $ZipToCreate = Confirm-ZipFileReq
+        $ZipToCreate = BuildZipTable 
         #Write-Host "ZipFoldersTable value is $ZiptoCreate"
         # not sure write-progress is necessary but i'm trying it out
         $currentFolderIndex = 0
@@ -275,7 +285,7 @@ elseif (Define-Jobs) {
         Write-Host "entering jobbed version of the zipper"
         $getMax = Define-Jobs
         $jobList = @() # create empty list for 'job pool' (like dog pool but uglier)
-        $ZipToCreate = Confirm-ZipFileReq # hashtable of source folders to destination zip file names
+        $ZipToCreate = Confirm-ZipFileReq # BuildZipTable hashtable of source folders to destination zip file names
         $currentFolderIndex = 0 # to count total completed zips
         $totalFolders = $ZipToCreate.Count # total number of records in the hashtable, total jobs to do
         
@@ -304,3 +314,18 @@ elseif (Define-Jobs) {
 }
 
 
+#function Define-Jobs {
+#    if ( ($jobs -eq "enable-jobs") -or ($jobs -eq "enablejobs") )  {
+#        # this should skip if $jobs isn't specific or something not "enable-jobs"/enablejobs is passed in
+#        # and the -eq should default to non-case sensitive. So that's a relief.
+#
+#            # this function and therefore variable is only defined if jobs is enabled from the execution of the script
+#            # ProcessorCount should be considered a starting off point. You could make it ProcessorCount  * 2
+#            # or ProcessorCount / 2 (assuming an even number of CPU cores/threads)
+#            # zip operations are most likely to run into a CPU bottleneck (unless you have a really slow storage device?)
+#            $maxJobs = [System.Environment]::ProcessorCount 
+#    #        $jobslist = @()
+#            return $maxJobs
+#        }
+#    return $false
+#}

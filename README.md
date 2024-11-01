@@ -55,7 +55,7 @@ If I polish it more (and add an ascii art based logo, obviously) I might try and
   - I could use that saved file as a config file for a match script that selective unzips the folder(s)...?
 - A companion script that as a batch or selectively on unzips the games to a destination
 - more/better error checking and dealing with the errors
-- re-write that gnarly if condition so it looks a lot better and is easier to follow
+- re-write that gnarly if condition so it looks a lot better and is easier to follow [effectively done]
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
 - Some semblance of dealing with duplicate zips via parameter or whatever
 - an argument to select a compression level besides the default
@@ -65,6 +65,18 @@ Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 31 October 2024
+
+I'm trying to refactor the script again. I've created additonal global variables, flagged them as global and set them to read-only. These are values end users can easily adjust but not important enough to add as separate parameters.
+
+I have update the Get-FileDateStamp function to hopefully be more readable and robust and actually added a feature that doesn't really do anyting at the moment. Maybe it will be useful in the future.
+
+I have refactored the BuildZipTable entirely - I generate the two lists that will populate the hashtable as I'm going through source subfolder and also constructing the zip name. A much better use of a loop and way to do do these two things. 
+
+There is also a space for adding exclusion for what is not going into the lists such as empty folders or paths the user doesn't want to include (I would exclude SteamVR, for instance).
+
+
 
 ### 29 October 2024
 
