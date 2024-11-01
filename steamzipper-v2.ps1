@@ -143,7 +143,7 @@ function Get-FileDateStamp {
 
     # this is something of an "undocumented feature". Sending in random date codes in 8-digit format returns a date object.
     # I don't know why, just seemed to match the vibe of the function so why not?
-    if (   ($FileName -is [string]) -and ($FileName.Length -eq 8)   ) {
+    if (   ($FileName -is [string]) -and ($FileName.Length -eq $PreferredDateFormat.Length)   ) {
         try {
             $datecode = $FileName
             return [datetime]::ParseExact($datecode,$PreferredDateFormat,$null)
@@ -191,27 +191,35 @@ function Get-FileDateStamp {
 # Get-DestZipDateString "Horizon_Chase_10152024_steam.zip" # seems to work with test data
 
 function BuildZipTable  {
-    $folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
+    #$folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
     #Write-Host "value of folders is $folders"
     $ZipFoldersTable = @{}
     $buildZipList = @()
     $buildSrcFolderList = @()
 
-    foreach ($subfolder in $folders) {
-        $folderName = $subfolder.Name -replace ' ', '_'
-        # $PreferredDateFormat defined at top of script
-        $FolderModDate = $subfolder.LastWriteTime.ToString($PreferredDateFormat)
-        #$FolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
+#    foreach ($subfolder in $folders) {
+    Get-ChildItem -Path $SourceDir -Directory | ForEach-Object {
+        # start construction of zip folder name:
+        # 1. replace spaces with '_' underscores
+        $folderName = $_.Name -replace ' ', '_'
+        $folderPath = $_.FullName
+#        $FolderModDate = $subfolder.LastWriteTime.ToString($PreferredDateFormat)
+        # 2. bring in the date stamp (converted to date object)
+        $FolderModDate = Get-FileDateStamp -FileName $folderName
+        
+        # 3. store the platform name for appending
+        $platformName = Get-PlatformShortName
 
-        #$existZipModDate = $subfolder.LastWriteTime.ToString("MMddyyy")
-
-#        Write-Host "existing zip mod date is $existZipModDate" # and folder mod date is $FolderModDate"
-        $plat = Get-PlatformShortName #-path $sourceFolder
-        $finalName = "$folderName" + "_$FolderModDate" + "_$plat.$CompressionExtension" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
-        $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
+        # lastly...
+#        $zipFinalName = "$folderName" + "_$FolderModDate" + "_$plat.$CompressionExtension" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
+        
+        $zipFileName = "$folderName`_$($folderModDate.ToString($PreferredDateFormat))`_$platformName.$CompressionExtension"
+        
+#        $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
+        $zipFileName = "$folderName`_$($folderModDate.ToString($PreferredDateFormat))`_$platformName.$CompressionExtension"
 
         # I'm trying date string extract instead of query date last modified of zip to see if it makes more sense
-        #$existZipModDate = Get-DestZipDate $DestZipExist
+        # $existZipModDate = Get-DestZipDate $DestZipExist
         $existZipModDate = Get-FileDateStamp $DestZipExist
 
 
