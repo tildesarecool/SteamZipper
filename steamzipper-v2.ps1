@@ -6,35 +6,6 @@
 # https://github.com/santisq/PSCompression/tree/main
 # (i found it on the PS gallery https://www.powershellgallery.com/packages/PSCompression/2.0.7)
 
-# set default for max number of parallel jobs
-# e.g. the number of zip operations happening at once
-# you can adjust this by appending things like 
-# * 2 or / 2 
-# to increase/decrease this 
-$Global:maxJobs = [System.Environment]::ProcessorCount 
-#Set-Variable -Name "maxJobs" -value ([System.Environment]::ProcessorCount ) -Scope global -Option ReadOnly
-# --------------------------------------
-# hopefully this is straight forward: 
-# MM is month, dd is day and yyyy is year
-# so if you wanted day-month-year you'd change this to
-# ddMMyyyy (in quotes)
-# DON'T RUN IT ONCE AND CHANGE IT as the script isn't smart enough to recognize a different format (although I haven't tested this)
-# (the file names will be off too)
-# also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
-#$Global:PreferredDateFormat = "MMddyyyy"
-Set-Variable -Name "PreferredDateFormat" -value ("MMddyyyy") -Scope global -Option ReadOnly
-# --------------------------------------
-# Specify the folder minimum size limit (in KB) (see function Get-FolderSizeKB below)
-# this constant is the minimum size a folder can contain before it will be zipped up
-# Or said another way "no reason to backup/zip a 0KB sized folder"
-# I just set this arbitrarily to 50KBs - adjust this number as you see fit
-#$Global:sizeLimitKB = 50 
-Set-Variable -Name "sizeLimitKB" -Value 50 -Scope global -Option ReadOnly
-# --------------------------------------
-# This is more of a place holder. In case compress-archive ever supports more compression formats than zip (like 7z, rar, gzip etc)
-# could also use it in conjuction with a compress-archive alternative like 7zip CLI which supports compression to other formats
-# I'm trying to be future-forward thinking and/or modular but I may be adding additional complexity for no good reason
-Set-Variable -Name "CompressionExtension" -Value "zip" -Scope global -Option ReadOnly
 
 
 # Script parameters (this should be the very first thing in the script)
@@ -51,6 +22,59 @@ param (
     [Parameter(Mandatory=$false)] # Optional parameter: keep outdated zip file with old date code in name along side new/updated zip file.
     [string]$KeepDuplicateZips  
 )
+
+# set default for max number of parallel jobs
+# e.g. the number of zip operations happening at once
+# you can adjust this by appending things like 
+# * 2 or / 2 
+# to increase/decrease this 
+$Global:maxJobs = [System.Environment]::ProcessorCount 
+
+#Set-Variable -Name "maxJobs" -value ([System.Environment]::ProcessorCount ) -Scope global -Option ReadOnly
+# --------------------------------------
+#Set-Variable -Name "PreferredDateFormat" -value "MMddyyyy" #-Scope global -Option Constant
+## --------------------------------------
+#Set-Variable -Name "sizeLimitKB" -Value 50 #-Scope global -Option Constant
+## --------------------------------------
+#Set-Variable -Name "CompressionExtension" -Value "zip" #-Scope global -Option Constant
+
+# Define constants only if they are not already defined
+# --------------------------------------
+if (-not (Test-Path Variable:\PreferredDateFormat)) {
+    # hopefully this is straight forward: 
+# MM is month, dd is day and yyyy is year
+# so if you wanted day-month-year you'd change this to
+# ddMMyyyy (in quotes)
+# DON'T RUN IT ONCE AND CHANGE IT as the script isn't smart enough to recognize a different format (although I haven't tested this)
+# (the file names will be off too)
+# also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
+#$Global:PreferredDateFormat = "MMddyyyy"
+
+    Set-Variable -Name "PreferredDateFormat" -Value "MMddyyyy" -Scope Global -Option ReadOnly
+}
+
+#if (-not (Test-Path Variable:\maxJobs)) {
+#    Set-Variable -Name "maxJobs" -Value ([System.Environment]::ProcessorCount) -Scope Global -Option Constant
+#}
+# --------------------------------------
+if (-not (Test-Path Variable:\sizeLimitKB)) {
+    # Specify the folder minimum size limit (in KB) (see function Get-FolderSizeKB below)
+# this constant is the minimum size a folder can contain before it will be zipped up
+# Or said another way "no reason to backup/zip a 0KB sized folder"
+# I just set this arbitrarily to 50KBs - adjust this number as you see fit
+
+    Set-Variable -Name "sizeLimitKB" -Value 50 -Scope Global -Option ReadOnly
+}
+# --------------------------------------
+if (-not (Test-Path Variable:\CompressionExtension)) {
+    # This is more of a place holder. In case compress-archive ever supports more compression formats than zip (like 7z, rar, gzip etc)
+# could also use it in conjuction with a compress-archive alternative like 7zip CLI which supports compression to other formats
+# I'm trying to be future-forward thinking and/or modular but I may be adding additional complexity for no good reason
+    Set-Variable -Name "CompressionExtension" -Value "zip" -Scope Global -Option ReadOnly
+}
+
+
+
 
 
 if (! (Test-Path $sourceFolder) ) {
@@ -196,26 +220,31 @@ function BuildZipTable  {
     # i was debaining on whether to use this $SourceDir directly from the parameter passed in to the script
     # or define it separately as a parameter
     # I decided to use the script parameter directly because that parameter is mandatory and validated elsewhere
-    Get-ChildItem -Path $SourceDir -Directory | ForEach-Object {
+
+    $zipListTracker = 0
+    Write-Host "about to enter for-each object loop"
+    Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
+        Write-Host "starting for each object loop"
         # start construction of zip file name:
         # 1. replace spaces with '_' underscores in folder name
         $folderName = $_.Name -replace ' ', '_'
         $folderPath = $_.FullName
-#        $FolderModDate = $subfolder.LastWriteTime.ToString($PreferredDateFormat)
+        $FolderModDate = $subfolder.LastWriteTime.ToString($PreferredDateFormat)
         # 2. bring in the date stamp (converted to date object)
-        $FolderModDate = Get-FileDateStamp $folderName
+#        $FolderModDate = Get-FileDateStamp $folderName
         # 2a. convert date object to date code string
-        $FolderModDateCode = $folderModDate.ToString($PreferredDateFormat)
+ #       $FolderModDateCode = $folderModDate.ToString($PreferredDateFormat)
         # 3. store the platform name for appending
         $platformName = Get-PlatformShortName
         # 4. join the variables into one long zip file name...
-        $zipFileName = "$folderName`_$($FolderModDateCode)`_$platformName.$CompressionExtension"
+        $zipFileName = "$folderName`_$($FolderModDate)`_$platformName.$CompressionExtension"
 
         #5. join destination path together with the 
         $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileName
 
-        $conditions = @(
-            { Get-FolderSizeKB -folderPath $folderPath } # checking current folder size - e.g. is it an empty folder and therefore skippable?
+        $conditions = @(   { 
+                Get-FolderSizeKB -folderPath $folderPath 
+            } # checking current folder size - e.g. is it an empty folder and therefore skippable?
         )
 
         $shouldskip = $conditions | ForEach-Object {
@@ -229,111 +258,132 @@ function BuildZipTable  {
         }
 
         # check for existing zip files for the same folder
-        $existingZipFiles = Get-ChildItem -Path $destinationFolder
+        #$existingZipFiles = Get-ChildItem -Path $destinationFolder
+        $existingZipFiles = Get-ChildItem -Path $destinationFolder `
+        -Filter "$folderName*.$CompressionExtension" | `
+        Where-Object { $_.Name -match "^$folderName" }
+
+        $latestExistingZipfile = $existingZipFiles | 
+        Sort-Object {
+            Get-FileDateStamp -FileName $_.FullName 
+        } | Select-Object -Last 1
+
+        if ($latestExistingZipfile) {
+            $existingZipDate = Get-FileDateStamp -FileName $latestExistingZipfile.FullName
+            if ($existingZipDate -ge $FolderModDate) {
+                Write-Output "Existing zip '$($latestExistingZipfile.Name)' for `
+                '$folderName' is newer or same as source. Skipping."
+                return 
+            }
+            if (-not $KeepDuplicateZips) {
+                Write-Output "Removing older zip file '$($latestExistingZipfile.FullName)' `
+                for '$folderName'. "
+                Remove-Item -Path $latestExistingZipfile.FullName -Force
+            }
+        }
+
+#        $buildSrcFolderList += $folderPath
+#        
+#        $buildZipList += $zipPath
+#        
+#        $ZipFoldersTable[$folderPath] = $zipPath
 
 
-        # I'm trying date string extract instead of query date last modified of zip to see if it makes more sense
-        # $existZipModDate = Get-DestZipDate $DestZipExist
-#        $existZipModDate = Get-FileDateStamp $DestZipExist
+        $buildSrcFolderList += $folderPath
+        $buildZipList += $zipPath
+        Write-Host "Current value of zipbuildlist is $buildZipList[$zipListTracker]"
+        $zipListTracker++
 
+        $ZipFoldersTable[$folderPath] = $zipPath
 
-        #$skipFlag = 0
-        $TestFolderSize = Get-FolderSizeKB $subfolder
-        #Write-Host "Value of getkb is $TestFolderSize"
-#        $ConvertedFolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
-        $ConvertedFolderModDate = Get-FileDateStamp $FolderModDate # [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
-#        Write-Host "ConvertedFolderModDate value is $ConvertedFolderModDate"
-
-        $DoesZipExist = Test-Path -Path $DestZipExist # bool that determines if the zip exists, yes/no
-
-        if (-not ($DoesZipExist) -or  (  `
-        ($DoesZipExist  ) -and ( $existZipModDate -lt $ConvertedFolderModDate) `
-        
-        ) -and $TestFolderSize)  {
-           $buildSrcFolderList += $subfolder
-           $buildZipList += $DestZipExist
-        } 
-
-#        if (-not (Test-Path -Path $DestZipExist) -or ((Test-Path -Path $DestZipExist  ) `
-#          -and ( $existZipModDate -lt $ConvertedFolderModDate)) -and $TestFolderSize)  {
-#            $buildSrcFolderList += $subfolder
-##            Write-Host "folderdatemod is $folderModDate and destzipexist mod date is " + $DestZipExist.LastWriteTime.ToString('MMddyyyy')
-#            $buildZipList += $DestZipExist
-#        } 
-#        elseif ((Test-Path -Path $DestZipExist -eq $true) -and ( $DestZipExist.LastWriteTime.ToString("MMddyyyy") -gt $FolderModDate)) {
-#        } 
     }
-    # Fill the hashtable
-    for ($i = 0; $i -lt $buildSrcFolderList.Length; $i++) {
-        $ZipFoldersTable[$buildSrcFolderList[$i]] = $buildZipList[$i]
-    }
-    
+    Write-Host "made it to return statement"
+
+#    foreach ($entry in $ZipFoldersTable.GetEnumerator()) {
+#        Write-Host "Final entry in hash table: $($entry.Key) -> $($entry.Value)"
+#    }
+#    
+
+
+
     return $ZipFoldersTable
 } # end of the BuildZipTable  function. if that wasn't clear.
 
-if (-not (Define-Jobs) ) {
-    function Go-SteamZipper-Jobless {
-        $ZipToCreate = BuildZipTable 
-        #Write-Host "ZipFoldersTable value is $ZiptoCreate"
-        # not sure write-progress is necessary but i'm trying it out
-        $currentFolderIndex = 0
-        $totalFolders = $ZipToCreate.Count
-        foreach ($key in $ZipToCreate.Keys) {
-    #        Write-Host "$key **maps to** $($ZipToCreate[$key])"
-            $currentZip = Split-Path -Path $($ZipToCreate[$key]) -Leaf
-            $currentFolderIndex++
-    #        $percentComplete = ($currentFolderIndex / $totalFolders) * 100
+BuildZipTable
 
-            # attempt to deal with error message 
-            try {
-            Write-Host "Currently zipping source folder '$key' to destination zip file '$currentZip' ($currentFolderIndex of $totalFolders)"
-    #        Write-Progress -Activity "Zipping files" `
-    #                        -Status "Zipping $($key.Name)" `
-    #                        -PercentComplete $percentComplete    
-            Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key])
-            }
-            catch {
-                Write-Host "Failed to create the destination zip file $currentZip"
-                Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
-            }
-        }
-    }
+
+
+
+# Clean up ReadOnly variables at script end: VERY LAST STATEMENTS OF ENTIRE SCRIPT
+Remove-Variable -Name "PreferredDateFormat" -Scope Global -Force 
+Remove-Variable -Name "maxJobs" -Scope Global -Force
+Remove-Variable -Name "sizeLimitKB" -Scope Global -Force
+Remove-Variable -Name "CompressionExtension" -Scope Global -Force
+
+
+#if (-not (Define-Jobs) ) {
+#    function Go-SteamZipper-Jobless {
+#        $ZipToCreate = BuildZipTable 
+#        #Write-Host "ZipFoldersTable value is $ZiptoCreate"
+#        # not sure write-progress is necessary but i'm trying it out
+#        $currentFolderIndex = 0
+#        $totalFolders = $ZipToCreate.Count
+#        foreach ($key in $ZipToCreate.Keys) {
+#    #        Write-Host "$key **maps to** $($ZipToCreate[$key])"
+#            $currentZip = Split-Path -Path $($ZipToCreate[$key]) -Leaf
+#            $currentFolderIndex++
+#    #        $percentComplete = ($currentFolderIndex / $totalFolders) * 100
+#
+#            # attempt to deal with error message 
+#            try {
+#            Write-Host "Currently zipping source folder '$key' to destination zip file '$currentZip' ($currentFolderIndex of $totalFolders)"
+#    #        Write-Progress -Activity "Zipping files" `
+#    #                        -Status "Zipping $($key.Name)" `
+#    #                        -PercentComplete $percentComplete    
+#            Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key])
+#            }
+#            catch {
+#                Write-Host "Failed to create the destination zip file $currentZip"
+#                Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
+#            }
+#        }
+#    }
 #############################################################
-Go-SteamZipper-Jobless
+#Go-SteamZipper-Jobless
 #############################################################
-}
-elseif (Define-Jobs) {
-    function Go-SteamZipper-Jobbed {
-        Write-Host "entering jobbed version of the zipper"
-        $getMax = Define-Jobs
-        $jobList = @() # create empty list for 'job pool' (like dog pool but uglier)
-        $ZipToCreate = Confirm-ZipFileReq # BuildZipTable hashtable of source folders to destination zip file names
-        $currentFolderIndex = 0 # to count total completed zips
-        $totalFolders = $ZipToCreate.Count # total number of records in the hashtable, total jobs to do
-        
-        foreach ($key in $ZipToCreate.Keys) {
-            $currentZip = Split-Path -Path $($ZipToCreate[$key]) -Leaf # just zip name for the providing information to the user
-            $currentFolderIndex++ # increment zip job counter. probably don't need for job version
-            while ($jobList.Count -ge $getMax) {
-                # while the number jobs is less than or equal to my set max jobs
-                # I think I understand what this does. Maybe.
-                $jobList = $jobList | Where-Object { $_.State -eq 'Running'}
-                Start-Sleep -Seconds 1
-            }
-            $oneJob = Start-Job -ScriptBlock { Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key]) }
-
-            $jobList += $oneJob
-            Write-Host "value of joblist currently is $jobList"
-
-        }
-
-    }
-
-#    Write-Host "Jobs enabled. Value of getMax is $getMax."
-#############################################################
-    Go-SteamZipper-Jobbed
-#############################################################
-}
+#}
+#elseif (Define-Jobs) {
+#    function Go-SteamZipper-Jobbed {
+#        Write-Host "entering jobbed version of the zipper"
+#        $getMax = Define-Jobs
+#        $jobList = @() # create empty list for 'job pool' (like dog pool but uglier)
+#        $ZipToCreate = Confirm-ZipFileReq # BuildZipTable hashtable of source folders to destination zip file names
+#        $currentFolderIndex = 0 # to count total completed zips
+#        $totalFolders = $ZipToCreate.Count # total number of records in the hashtable, total jobs to do
+#        
+#        foreach ($key in $ZipToCreate.Keys) {
+#            $currentZip = Split-Path -Path $($ZipToCreate[$key]) -Leaf # just zip name for the providing information to the user
+#            $currentFolderIndex++ # increment zip job counter. probably don't need for job version
+#            while ($jobList.Count -ge $getMax) {
+#                # while the number jobs is less than or equal to my set max jobs
+#                # I think I understand what this does. Maybe.
+#                $jobList = $jobList | Where-Object { $_.State -eq 'Running'}
+#                Start-Sleep -Seconds 1
+#            }
+#            $oneJob = Start-Job -ScriptBlock { Compress-Archive -Path $key -DestinationPath $($ZipToCreate[$key]) }
+#
+#            $jobList += $oneJob
+#            Write-Host "value of joblist currently is $jobList"
+#
+#        }
+#
+#    }
+#
+##    Write-Host "Jobs enabled. Value of getMax is $getMax."
+##############################################################
+#    Go-SteamZipper-Jobbed
+##############################################################
+#}
 
 
 #function Define-Jobs {
@@ -354,3 +404,36 @@ elseif (Define-Jobs) {
 #        $zipFinalName = "$folderName" + "_$FolderModDate" + "_$plat.$CompressionExtension" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
         
         #$zipFileName = "$folderName`_$($folderModDate.ToString($PreferredDateFormat))`_$platformName.$CompressionExtension"
+
+
+
+        #         #$skipFlag = 0
+#         $TestFolderSize = Get-FolderSizeKB $subfolder
+#         #Write-Host "Value of getkb is $TestFolderSize"
+# #        $ConvertedFolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
+#         $ConvertedFolderModDate = Get-FileDateStamp $FolderModDate # [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
+# #        Write-Host "ConvertedFolderModDate value is $ConvertedFolderModDate"
+# 
+#         $DoesZipExist = Test-Path -Path $DestZipExist # bool that determines if the zip exists, yes/no
+# 
+#         if (-not ($DoesZipExist) -or  (  `
+#         ($DoesZipExist  ) -and ( $existZipModDate -lt $ConvertedFolderModDate) `
+#         
+#         ) -and $TestFolderSize)  {
+#            $buildSrcFolderList += $subfolder
+#            $buildZipList += $DestZipExist
+#         } 
+# 
+# #        if (-not (Test-Path -Path $DestZipExist) -or ((Test-Path -Path $DestZipExist  ) `
+# #          -and ( $existZipModDate -lt $ConvertedFolderModDate)) -and $TestFolderSize)  {
+# #            $buildSrcFolderList += $subfolder
+# ##            Write-Host "folderdatemod is $folderModDate and destzipexist mod date is " + $DestZipExist.LastWriteTime.ToString('MMddyyyy')
+# #            $buildZipList += $DestZipExist
+# #        } 
+# #        elseif ((Test-Path -Path $DestZipExist -eq $true) -and ( $DestZipExist.LastWriteTime.ToString("MMddyyyy") -gt $FolderModDate)) {
+# #        } 
+#     }
+#     # Fill the hashtable
+#     for ($i = 0; $i -lt $buildSrcFolderList.Length; $i++) {
+#         $ZipFoldersTable[$buildSrcFolderList[$i]] = $buildZipList[$i]
+#     }
