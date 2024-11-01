@@ -13,25 +13,24 @@
 # to increase/decrease this 
 $Global:maxJobs = [System.Environment]::ProcessorCount 
 #Set-Variable -Name "maxJobs" -value ([System.Environment]::ProcessorCount ) -Scope global -Option ReadOnly
-
+# --------------------------------------
 # hopefully this is straight forward: 
 # MM is month, dd is day and yyyy is year
 # so if you wanted day-month-year you'd change this to
 # ddMMyyyy (in quotes)
-# DON'T RUN IT ONCE AND CHANGE IT as the script isn't 
-# smart enough to recognize a different format (the file names will be off too)
+# DON'T RUN IT ONCE AND CHANGE IT as the script isn't smart enough to recognize a different format (although I haven't tested this)
+# (the file names will be off too)
 # also, MUST CAPITALIZE the MM part. Capital MM == month while lower case mm == minutes. So capitalize the "M"s
 #$Global:PreferredDateFormat = "MMddyyyy"
 Set-Variable -Name "PreferredDateFormat" -value ("MMddyyyy") -Scope global -Option ReadOnly
-
+# --------------------------------------
 # Specify the folder minimum size limit (in KB) (see function Get-FolderSizeKB below)
-# this constant is the minimum size a folder can contain before it will be backed up
+# this constant is the minimum size a folder can contain before it will be zipped up
 # Or said another way "no reason to backup/zip a 0KB sized folder"
 # I just set this arbitrarily to 50KBs - adjust this number as you see fit
 #$Global:sizeLimitKB = 50 
 Set-Variable -Name "sizeLimitKB" -Value 50 -Scope global -Option ReadOnly
-
-
+# --------------------------------------
 # This is more of a place holder. In case compress-archive ever supports more compression formats than zip (like 7z, rar, gzip etc)
 # could also use it in conjuction with a compress-archive alternative like 7zip CLI which supports compression to other formats
 # I'm trying to be future-forward thinking and/or modular but I may be adding additional complexity for no good reason
@@ -53,13 +52,9 @@ param (
     [string]$KeepDuplicateZips  
 )
 
-if (-not $sourceFolder -or -not $destinationFolder) {
-    Write-Host "Error: Source folder and destination folder must be specified."
-    exit 1
-}
 
 if (! (Test-Path $sourceFolder) ) {
-    Write-Error -message "Source folder $sourceFolder not found, exiting..."
+    Write-Error -message "Error: Source folder $sourceFolder not found, exiting..."
     exit 1
 }
 
@@ -198,29 +193,48 @@ function BuildZipTable  {
     $buildSrcFolderList = @()
 
 #    foreach ($subfolder in $folders) {
+    # i was debaining on whether to use this $SourceDir directly from the parameter passed in to the script
+    # or define it separately as a parameter
+    # I decided to use the script parameter directly because that parameter is mandatory and validated elsewhere
     Get-ChildItem -Path $SourceDir -Directory | ForEach-Object {
-        # start construction of zip folder name:
-        # 1. replace spaces with '_' underscores
+        # start construction of zip file name:
+        # 1. replace spaces with '_' underscores in folder name
         $folderName = $_.Name -replace ' ', '_'
         $folderPath = $_.FullName
 #        $FolderModDate = $subfolder.LastWriteTime.ToString($PreferredDateFormat)
         # 2. bring in the date stamp (converted to date object)
-        $FolderModDate = Get-FileDateStamp -FileName $folderName
-        
+        $FolderModDate = Get-FileDateStamp $folderName
+        # 2a. convert date object to date code string
+        $FolderModDateCode = $folderModDate.ToString($PreferredDateFormat)
         # 3. store the platform name for appending
         $platformName = Get-PlatformShortName
+        # 4. join the variables into one long zip file name...
+        $zipFileName = "$folderName`_$($FolderModDateCode)`_$platformName.$CompressionExtension"
 
-        # lastly...
-#        $zipFinalName = "$folderName" + "_$FolderModDate" + "_$plat.$CompressionExtension" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
-        
-        $zipFileName = "$folderName`_$($folderModDate.ToString($PreferredDateFormat))`_$platformName.$CompressionExtension"
-        
-#        $DestZipExist = Join-Path -Path $destinationFolder -ChildPath $finalName
-        $zipFileName = "$folderName`_$($folderModDate.ToString($PreferredDateFormat))`_$platformName.$CompressionExtension"
+        #5. join destination path together with the 
+        $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileName
+
+        $conditions = @(
+            { Get-FolderSizeKB -folderPath $folderPath } # checking current folder size - e.g. is it an empty folder and therefore skippable?
+        )
+
+        $shouldskip = $conditions | ForEach-Object {
+            if ( -not (&$_)) {
+                return $true
+            }
+        }
+        if ($shouldskip) {
+            Write-Output "Skipping '$foldername' due to failing one or more conditions."
+            return
+        }
+
+        # check for existing zip files for the same folder
+        $existingZipFiles = Get-ChildItem -Path $destinationFolder
+
 
         # I'm trying date string extract instead of query date last modified of zip to see if it makes more sense
         # $existZipModDate = Get-DestZipDate $DestZipExist
-        $existZipModDate = Get-FileDateStamp $DestZipExist
+#        $existZipModDate = Get-FileDateStamp $DestZipExist
 
 
         #$skipFlag = 0
@@ -337,3 +351,6 @@ elseif (Define-Jobs) {
 #        }
 #    return $false
 #}
+#        $zipFinalName = "$folderName" + "_$FolderModDate" + "_$plat.$CompressionExtension" # I could make 'zip' a global variable. so the script can work with other compression formats. maybe later.
+        
+        #$zipFileName = "$folderName`_$($folderModDate.ToString($PreferredDateFormat))`_$platformName.$CompressionExtension"
