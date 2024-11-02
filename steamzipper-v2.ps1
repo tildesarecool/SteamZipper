@@ -28,7 +28,9 @@ param (
 # you can adjust this by appending things like 
 # * 2 or / 2 
 # to increase/decrease this 
-$Global:maxJobs = [System.Environment]::ProcessorCount 
+if (-not (Test-Path Variable:\maxJobs   )) {
+    Set-Variable -Name "maxJobs" -Value [System.Environment]::ProcessorCount -Scope Global -Option ReadOnly
+}
 
 #Set-Variable -Name "maxJobs" -value ([System.Environment]::ProcessorCount ) -Scope global -Option ReadOnly
 # --------------------------------------
@@ -129,6 +131,11 @@ function Get-PlatformShortName {
 #$PlatName = Get-PlatformShortName -path $sourceFolder
 #Write-Host "platform name is $PlatName"
 
+#############################################################
+# at least as of this test (16:50 nov 1st) this function tests valid
+# Get-PlatformShortName #(using P:\steamzipper\steam temp storage for input path) # returned "steam" successfully
+# Get-PlatformShortName #(using P:\steamzipper\gog temp storage for input path) # returned "gog" successfully
+#############################################################
 
 function Get-FolderSizeKB {
     param (
@@ -148,7 +155,11 @@ function Get-FolderSizeKB {
     }
     return $false
 }
-
+#############################################################
+# at least as of this test (16:45 nov 1st) this function tests valid
+# Get-FolderSizeKB "P:\steamzipper\steam temp storage\cyberpunk" # folder exists but has no files (under minimum KB size)
+# Get-FolderSizeKB "P:\steamzipper\steam temp storage\PAC-MAN" # folder exists and has files (over minimum KB size)
+#############################################################
 
 function Get-FileDateStamp {
         # $FileName is either a path to a folder or the zip file name. 
@@ -209,6 +220,44 @@ function Get-FileDateStamp {
 
 # Get-DestZipDateString "Horizon_Chase_10152024_steam.zip" # seems to work with test data
 
+#############################################################
+# at least as of this test (16:43 nov 1st) this function tests valid
+#Get-FileDateStamp "P:\steamzipper\backup-steam\Outzone_10152024_steam.zip"
+#Get-FileDateStamp "P:\steamzipper\steam temp storage\PAC-MAN"
+#Get-FileDateStamp "10222024"
+#############################################################
+
+function determineExistZipFile {
+    # send in zip file (full path?)
+    # it looks like the zip name without the date stamp
+    # does a dig_dog*.zip in other words
+    # if there's a result it returns true
+    # else return false
+    # that's it
+    # parameter would be something like PAC-MAN_10152024_steam.zip
+    # this tests destination directory for files PAC-MAN_*.zip
+    # don't need a number of matches, just a yes/no if it exists in destination
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$szZipFileName
+    )
+#if ($path -like "*$platform*") {
+    $ZipNameBreakout = $szZipFileName -split '_'
+
+$justzipname = "Out zone"
+$backtounder = $justzipname -replace ' ', '_'
+Write-Host "backtounder value is $backtounder"
+
+
+
+
+$ZipNameBreakout
+    if ($szZipFileName -gt "*.exe") {
+
+    }
+
+}
+
 function BuildZipTable  {
     #$folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
     #Write-Host "value of folders is $folders"
@@ -223,93 +272,123 @@ function BuildZipTable  {
 
     $zipListTracker = 0
     Write-Host "about to enter for-each object loop"
+    Write-Host "value of source folder is $sourceFolder"
     Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
-        Write-Host "starting for each object loop"
+#       Write-Host "starting for each object loop"
         # start construction of zip file name:
         # 1. replace spaces with '_' underscores in folder name
-        $folderName = $_.Name -replace ' ', '_'
-        $folderPath = $_.FullName
-        $FolderModDate = $subfolder.LastWriteTime.ToString($PreferredDateFormat)
+        $folderNameUnderscores = $_.Name -replace ' ', '_'
+#        Write-Host "folderName is $folderName"
+#        $folderPath = $_.FullName
+#        Write-Host "folderPath is $folderPath"
+        $FolderModDate = $_.LastWriteTime.ToString($PreferredDateFormat)
+#        Write-Host "FolderModDate is $FolderModDate"
+
         # 2. bring in the date stamp (converted to date object)
 #        $FolderModDate = Get-FileDateStamp $folderName
         # 2a. convert date object to date code string
  #       $FolderModDateCode = $folderModDate.ToString($PreferredDateFormat)
         # 3. store the platform name for appending
         $platformName = Get-PlatformShortName
-        # 4. join the variables into one long zip file name...
-        $zipFileName = "$folderName`_$($FolderModDate)`_$platformName.$CompressionExtension"
+#        # 4. join the variables into one long zip file name...
+        $zipFileNameWithModDate = "$folderNameUnderscores`_$($FolderModDate)`_$platformName.$CompressionExtension"
+        $zipFileNameNoModDate = "$folderNameUnderscores`_$($platformName)`.$CompressionExtension"
+        Write-Host "zipFileNameNoModDate is $zipFileNameNoModDate"
 
-        #5. join destination path together with the 
-        $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileName
 
-        $conditions = @(   { 
-                Get-FolderSizeKB -folderPath $folderPath 
-            } # checking current folder size - e.g. is it an empty folder and therefore skippable?
-        )
+#        #5. join destination path together with the 
+        $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileNameWithModDate
+        Write-Host "zip path is $zipPath"
 
-        $shouldskip = $conditions | ForEach-Object {
-            if ( -not (&$_)) {
-                return $true
-            }
-        }
-        if ($shouldskip) {
-            Write-Output "Skipping '$foldername' due to failing one or more conditions."
-            return
+        $sizeKB = Get-FolderSizeKB -folderPath $_.FullName
+        if (-not ( $sizeKB ) ) {
+            Write-Output "Skipping '$($_.Name)' due to set conditions."
+            Write-Host "sizeKB value is $sizeKB"
         }
 
-        # check for existing zip files for the same folder
-        #$existingZipFiles = Get-ChildItem -Path $destinationFolder
-        $existingZipFiles = Get-ChildItem -Path $destinationFolder `
-        -Filter "$folderName*.$CompressionExtension" | `
-        Where-Object { $_.Name -match "^$folderName" }
-
-        $latestExistingZipfile = $existingZipFiles | 
-        Sort-Object {
-            Get-FileDateStamp -FileName $_.FullName 
-        } | Select-Object -Last 1
-
-        if ($latestExistingZipfile) {
-            $existingZipDate = Get-FileDateStamp -FileName $latestExistingZipfile.FullName
-            if ($existingZipDate -ge $FolderModDate) {
-                Write-Output "Existing zip '$($latestExistingZipfile.Name)' for `
-                '$folderName' is newer or same as source. Skipping."
-                return 
-            }
-            if (-not $KeepDuplicateZips) {
-                Write-Output "Removing older zip file '$($latestExistingZipfile.FullName)' `
-                for '$folderName'. "
-                Remove-Item -Path $latestExistingZipfile.FullName -Force
-            }
-        }
-
-#        $buildSrcFolderList += $folderPath
-#        
-#        $buildZipList += $zipPath
-#        
-#        $ZipFoldersTable[$folderPath] = $zipPath
+        #if ( (Test-Path -Path ($zipFileNameWithModDate -like "$folderNameUnderscores*$platformName.$CompressionExtension") ) ) {}
+        #$zipFileNameWithModDate -like
+        #$getTheMatch = "$($folderNameUnderscores).zip" -like { ($folderNameUnderscores*$platformName.$CompressionExtension) }
+        #$getTheMatch = "$($folderNameUnderscores)_$platformName.zip" -like { ("$folderNameUnderscores_*$platformName*$CompressionExtension") }
+        #Write-Host "$($folderNameUnderscores)_$platformName.zip like $folderNameUnderscores * $platformname . $compressionextension evaluates to $getTheMatch"
+        #$extractDateFromZipfile = $zipFileNameWithModDate
+        $ZipnameNumberofParts = $zipFileNameWithModDate -split '_'
+        Write-Host "ZipnameNumberofParts is value $ZipnameNumberofParts then length of which is $($ZipnameNumberofParts.Length)"
+        
 
 
-        $buildSrcFolderList += $folderPath
-        $buildZipList += $zipPath
-        Write-Host "Current value of zipbuildlist is $buildZipList[$zipListTracker]"
-        $zipListTracker++
+#if ( $zipFileNameWithModDate -like "$folderNameUnderscores*$platformName.$CompressionExtension") {
+#    Write-Host "found a match"
+#}
 
-        $ZipFoldersTable[$folderPath] = $zipPath
+#
+#        # check for existing zip files for the same folder
+#        #$existingZipFiles = Get-ChildItem -Path $destinationFolder
+#        $existingZipFiles = Get-ChildItem -Path $destinationFolder `
+#        -Filter "$folderName*.$CompressionExtension" | `
+#        Where-Object { $_.Name -match "^$folderName" }
+#
+#        $latestExistingZipfile = $existingZipFiles | 
+#        Sort-Object {
+#            Get-FileDateStamp -FileName $_.FullName 
+#        } | Select-Object -Last 1
+#
+#        if ($latestExistingZipfile) {
+#            $existingZipDate = Get-FileDateStamp -FileName $latestExistingZipfile.FullName
+#            if ($existingZipDate -ge $FolderModDate) {
+#                Write-Output "Existing zip '$($latestExistingZipfile.Name)' for `
+#                '$folderName' is newer or same as source. Skipping."
+#                return 
+#            }
+#            if (-not $KeepDuplicateZips) {
+#                Write-Output "Removing older zip file '$($latestExistingZipfile.FullName)' `
+#                for '$folderName'. "
+#                Remove-Item -Path $latestExistingZipfile.FullName -Force
+#            }
+#        }
+
+
 
     }
-    Write-Host "made it to return statement"
+}
 
-#    foreach ($entry in $ZipFoldersTable.GetEnumerator()) {
-#        Write-Host "Final entry in hash table: $($entry.Key) -> $($entry.Value)"
-#    }
-#    
-
-
-
-    return $ZipFoldersTable
-} # end of the BuildZipTable  function. if that wasn't clear.
-
+#############################################################
 BuildZipTable
+#############################################################
+
+
+
+
+
+
+
+#
+##        $buildSrcFolderList += $folderPath
+##        
+##        $buildZipList += $zipPath
+##        
+##        $ZipFoldersTable[$folderPath] = $zipPath
+#
+#
+#        $buildSrcFolderList += $folderPath
+#        $buildZipList += $zipPath
+#        Write-Host "Current value of zipbuildlist is $buildZipList[$zipListTracker]"
+#        $zipListTracker++
+#
+#        $ZipFoldersTable[$folderPath] = $zipPath
+#
+#    }
+#    Write-Host "made it to return statement"
+#
+##    foreach ($entry in $ZipFoldersTable.GetEnumerator()) {
+##        Write-Host "Final entry in hash table: $($entry.Key) -> $($entry.Value)"
+##    }
+##    
+#
+#
+#
+#    return $ZipFoldersTable
+#} # end of the BuildZipTable  function. if that wasn't clear.
 
 
 
@@ -437,3 +516,22 @@ Remove-Variable -Name "CompressionExtension" -Scope Global -Force
 #     for ($i = 0; $i -lt $buildSrcFolderList.Length; $i++) {
 #         $ZipFoldersTable[$buildSrcFolderList[$i]] = $buildZipList[$i]
 #     }
+
+
+
+# this was an idea but not necessary yet. and it doesn't work in this form anyway.
+#        $conditions = @(   { 
+#                $sizeKB = Get-FolderSizeKB -folderPath $_.Name
+#                #Write-Host "sizeKB result is $sizeKB from folder $($_.Name)"
+#            } # checking current folder size - e.g. is it an empty folder and therefore skippable?
+#        )
+#
+#        $shouldskip = $conditions | ForEach-Object {
+#            if ( -not (&$_)) {
+#                return $true
+#            }
+#        }
+#        if ($shouldskip) {
+#            Write-Output "Skipping '$foldername' due to failing one or more conditions."
+#            return
+#        }
