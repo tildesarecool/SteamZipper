@@ -3,6 +3,9 @@ Loop through steam games folder, zipping each folder and giving it a unique name
 
 I'm not assuming this exact script hasn't already been done in many other languages many, many times before. I'm just doing this to try and backup my steam games. And practice PS scripting.
 
+### Current Script status: Broken
+(the flagged "release" is good)
+
 USAGE:
 ```steamzipper-v2.ps1 <source folder> <destination folder> <optional: enable-jobs> ```
 
@@ -65,6 +68,36 @@ Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 2 November 2024
+
+Well. It took me entirely too long - had to take the scenic route as usual - but I think I have my latest function actually done.
+
+It could actually be multi-functional but I think I'm going to break it up. I'll see later if I need to go back and combine into one.
+
+This new function - currently called determineExistZipFile - takes in a zip file name (like Horizon_Chase_10152024_steam.zip) and uses Get-ChildItem to determine if there's already a zip file with the first part of the name in the destination folder.
+
+In other words I can't test against Horizon_Chase_10152024_steam.zip so I have to cut off the date stamp and platform name. But file names will vary by the number of underscores and lengths. So I need to test against Horizon_Chase, in other words. But use that on *all* zip file names. 
+
+If an existing zip file is found return true. If not return false. That's the whole functionality.
+
+I did learn a lot. Like this for instance:
+```$zipNoExtra = $($ZipNameBreakout[0..$($target)])```
+I've never used that [0..x] syntax before but I'm glad it worked. If you're wondering what it means: array elements are accessible with the [] notation, the first element being 0. But you can access the last element with [-1]. So if there's an array of inderminate length, -1 will always be the last element. So [0..-3] is "everything between the first element and the third to last element in the array". Steam and "10152024" are the -1 and -2 elements of all the zip file names. 
+
+If a zip files *does* already exist, the companion function will isolate the "10152024" from Horizon_Chase_10152024_steam.zip and convert it to a date datatype then bring in the date code for a pending zip file (obtained from the source folder) and compare the two. If the folder is newer than the zip date then proceed to making a zip. And also delete the current zip. If the zip is newer than the folder no need to make a new zip file.
+
+No idea if that made sense. 
+
+I worked on this determineExistZipFile function pretty much all day today. I had it working the way I wanted except for this extra "True" or "False" that kept outputing.
+
+Turns out my crucial Get-ChildItem command was showing me these True/False even though I didn't ask for any output. I was doing a weird test though: Get-ChildItem on a directory with a filter condition. If get-childitem returned a result it was true otherwise false. So not a traditional boolean you might say.
+
+I tried everything trying to figureout how to get it to stop outputting like that but couldn't figure it out.
+
+I inadvertently found solution: assign the variable to the GetChild-Item which is in parens and piped to measure-object and after that close parens, a *.count*. So the variable is storing a number rather than the file list of the directory. 
+
+I also did some weird typing stuff in that determineExistZipFile function. I don't know why it works but it does. So I'm not touch it.
 
 ### 31 October 2024
 

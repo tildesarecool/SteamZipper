@@ -237,23 +237,49 @@ function determineExistZipFile {
     # parameter would be something like PAC-MAN_10152024_steam.zip
     # this tests destination directory for files PAC-MAN_*.zip
     # don't need a number of matches, just a yes/no if it exists in destination
+    # fatal flaw for this function: the loop for buildziptable is starting the "source" directory
+    # while the zip files are stored in the "destination" directory
+    # and i'd rather not nest foreach-object loops
+    # so maybe i'm making overly complex. maybe all i need is 
+    # get-childitem -path $destinationfolder -Filter $($ZipNameBreakout[0..$($target)])
+    # and either it comes back with a match or it doesn't
     param (
         [Parameter(Mandatory=$true)]
         [string]$szZipFileName
+        #[string]$PendingDate #(?)
     )
 #if ($path -like "*$platform*") {
+    # should i validate $szZipFileName parameter is a "leaf"?
     $ZipNameBreakout = $szZipFileName -split '_'
 
-$justzipname = "Out zone"
-$backtounder = $justzipname -replace ' ', '_'
-Write-Host "backtounder value is $backtounder"
+    $target = $ZipNameBreakout.Length - 3
 
+    $zipNoExtra = $($ZipNameBreakout[0..$($target)])
 
+    $justzipname = $zipNoExtra -replace ' ', '_'
 
+#    Write-Host "data type of justzip name is $($justzipname.GetType().FullName)"
 
-$ZipNameBreakout
-    if ($szZipFileName -gt "*.exe") {
+    if ( $justzipname -is [array] ) {
+        $justzipname = $zipNoExtra -join '_'
+        Write-Host "joined"
+    } elseif ($justzipname -is [string]) {
+        $justzipname -replace ' ', '_'
+        Write-Host "replaced"
+    }
 
+    #Write-Host "justzipname is $($justzipname)"
+
+     $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
+
+     if ($SeeIfExist) {
+#     if (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  ) {
+#    if (cmd /c dir $destinationFolder "$justzipname*") {    
+        Write-Host "zip file exists: returning true"
+        return $true
+    } else {
+        Write-Host "zip file does not exist: returning false"
+        return $false
     }
 
 }
@@ -271,8 +297,8 @@ function BuildZipTable  {
     # I decided to use the script parameter directly because that parameter is mandatory and validated elsewhere
 
     $zipListTracker = 0
-    Write-Host "about to enter for-each object loop"
-    Write-Host "value of source folder is $sourceFolder"
+    # Write-Host "about to enter for-each object loop"
+    # Write-Host "value of source folder is $sourceFolder"
     Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
 #       Write-Host "starting for each object loop"
         # start construction of zip file name:
@@ -293,17 +319,26 @@ function BuildZipTable  {
 #        # 4. join the variables into one long zip file name...
         $zipFileNameWithModDate = "$folderNameUnderscores`_$($FolderModDate)`_$platformName.$CompressionExtension"
         $zipFileNameNoModDate = "$folderNameUnderscores`_$($platformName)`.$CompressionExtension"
-        Write-Host "zipFileNameNoModDate is $zipFileNameNoModDate"
+#        Write-Host "zipFileNameNoModDate is $zipFileNameNoModDate"
+#        Write-Host "zipFileNameWithModDate is $zipFileNameWithModDate"
+
 
 
 #        #5. join destination path together with the 
         $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileNameWithModDate
-        Write-Host "zip path is $zipPath"
+#        Write-Host "zip path is $zipPath"
 
         $sizeKB = Get-FolderSizeKB -folderPath $_.FullName
         if (-not ( $sizeKB ) ) {
-            Write-Output "Skipping '$($_.Name)' due to set conditions."
-            Write-Host "sizeKB value is $sizeKB"
+ #           Write-Output "Skipping '$($_.Name)' due to set conditions."
+ #           Write-Host "sizeKB value is $sizeKB"
+        }
+
+        $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
+        if ($isThereAzip) {
+            Write-Host "determineExistZipFile return value from call is $isThereAzip"
+        } else {
+            Write-Host "else: determineExistZipFile return value from call is $isThereAzip"
         }
 
         #if ( (Test-Path -Path ($zipFileNameWithModDate -like "$folderNameUnderscores*$platformName.$CompressionExtension") ) ) {}
@@ -312,8 +347,9 @@ function BuildZipTable  {
         #$getTheMatch = "$($folderNameUnderscores)_$platformName.zip" -like { ("$folderNameUnderscores_*$platformName*$CompressionExtension") }
         #Write-Host "$($folderNameUnderscores)_$platformName.zip like $folderNameUnderscores * $platformname . $compressionextension evaluates to $getTheMatch"
         #$extractDateFromZipfile = $zipFileNameWithModDate
-        $ZipnameNumberofParts = $zipFileNameWithModDate -split '_'
-        Write-Host "ZipnameNumberofParts is value $ZipnameNumberofParts then length of which is $($ZipnameNumberofParts.Length)"
+        
+        # $ZipnameNumberofParts = $zipFileNameWithModDate -split '_'
+        # Write-Host "ZipnameNumberofParts is value $ZipnameNumberofParts then length of which is $($ZipnameNumberofParts.Length)"
         
 
 
