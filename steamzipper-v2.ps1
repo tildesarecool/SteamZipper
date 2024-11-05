@@ -260,6 +260,8 @@ function determineExistZipFile {
 
 #    Write-Host "data type of justzip name is $($justzipname.GetType().FullName)"
 
+    # ya, i know. It's kinda weird. I already do the type casting above so why are some arrays and some strings? 
+    # I don't know and at this point I don't want to know. This works so I'm going with it.
     if ( $justzipname -is [array] ) {
         $justzipname = $zipNoExtra -join '_'
         Write-Host "joined"
@@ -269,10 +271,12 @@ function determineExistZipFile {
     }
 
     #Write-Host "justzipname is $($justzipname)"
-
+    # the .Count method only works on strings, not arrays. but the arrays still come back false if not found so it's fine apparently
      $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
 
-     if ($SeeIfExist) {
+    $fileExists = [bool]$SeeIfExist
+
+     if ($fileExists) {
 #     if (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  ) {
 #    if (cmd /c dir $destinationFolder "$justzipname*") {    
         Write-Host "zip file exists: returning true"
@@ -333,12 +337,15 @@ function BuildZipTable  {
  #           Write-Output "Skipping '$($_.Name)' due to set conditions."
  #           Write-Host "sizeKB value is $sizeKB"
         }
+        
 
+#        $isThereAzip = [bool]
         $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
+        
         if ($isThereAzip) {
-            Write-Host "determineExistZipFile return value from call is $isThereAzip"
+            Write-Host "determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
         } else {
-            Write-Host "else: determineExistZipFile return value from call is $isThereAzip"
+            Write-Host "else: determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
         }
 
 
