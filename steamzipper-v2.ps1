@@ -42,7 +42,7 @@ if (-not (Test-Path Variable:\maxJobs   )) {
 
 # Define constants only if they are not already defined
 # --------------------------------------
-if (-not (Test-Path Variable:\PreferredDateFormat)) {
+if (-not (Test-Path Variable:\PreferredDateFormat) ) {
     # hopefully this is straight forward: 
 # MM is month, dd is day and yyyy is year
 # so if you wanted day-month-year you'd change this to
@@ -341,6 +341,15 @@ function BuildZipTable  {
             Write-Host "else: determineExistZipFile return value from call is $isThereAzip"
         }
 
+
+    }
+}
+
+#############################################################
+BuildZipTable
+#############################################################
+
+
         #if ( (Test-Path -Path ($zipFileNameWithModDate -like "$folderNameUnderscores*$platformName.$CompressionExtension") ) ) {}
         #$zipFileNameWithModDate -like
         #$getTheMatch = "$($folderNameUnderscores).zip" -like { ($folderNameUnderscores*$platformName.$CompressionExtension) }
@@ -385,12 +394,6 @@ function BuildZipTable  {
 
 
 
-    }
-}
-
-#############################################################
-BuildZipTable
-#############################################################
 
 
 
