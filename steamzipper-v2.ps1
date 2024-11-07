@@ -276,17 +276,22 @@ function determineExistZipFile {
 
     $fileExists = [bool]$SeeIfExist
 
-     if ($fileExists) {
+     if ( ($fileExists -is [string]) -and ($fileExists -ne "")  ) {
 #     if (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  ) {
 #    if (cmd /c dir $destinationFolder "$justzipname*") {    
-        Write-Host "zip file exists: returning true"
+#        Write-Host "zip file exists: returning true"
         return $true
-    } else {
-        Write-Host "zip file does not exist: returning false"
+     } elseif (( ($fileExists -is [string]) -and ($fileExists -eq "")  ) ) {
+        return $false
+
+     } elseif ($fileExists -eq $false) { # if   ( $fileExists -is [array] ) { #-and ($fileExists -eq $null)  ) {
+#        Write-Host "zip file does not exist: returning false"
+#        Write-Host "fileexists value is $fileExists and is type  Get-TypeData($fileExists)"
         return $false
     }
-
 }
+
+#}
 
 function BuildZipTable  {
     #$folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
@@ -342,11 +347,22 @@ function BuildZipTable  {
 #        $isThereAzip = [bool]
         $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
         
-        if ($isThereAzip) {
-            Write-Host "determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
+        #Write-Host "isthereazip value is $isThereAzip"
+
+        if (-not ($isThereAzip) ) { 
+            $isThereAzip = $false
+            Write-Host "isthereazip is not - value is $isthereAzip"
         } else {
-            Write-Host "else: determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
+            $isThereAzip = $true
+            Write-Host "isthereazip is now true - value is $isthereAzip"
         }
+#        $isThereAzip.type
+
+        #if ([bool]$isThereAzip -eq $true) {
+        #    Write-Host "determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
+        #} elseif ([bool]$isThereAzip -eq $false) {
+        #    Write-Host "else: determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
+        #}
 
 
     }
