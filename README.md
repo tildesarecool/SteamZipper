@@ -69,6 +69,24 @@ Might be a little much just for a thing that zips some folders.
 
 ---
 
+### 8 November 2024
+
+I did and re-did that zip-file-exists true/false function again. Or again by 30 times it seems like. Anyway I hope it's good now because I'm pretty sick of it.
+
+Now I'm working on my next function:
+
+1. extract date code from zip file name
+2. convert this date to a date object
+3. grab last write date from source folder (should be date object)
+4. compare the two dates to determine which is newer
+   1. if zip is newer than folder no action needed (zip already contains latest version of folder)
+   2. if zip is older than folder 
+      1. delete current zip file
+      2. lets folder stay in list for zipping 
+
+It also occurred to me to add an optional parameter to simply specify a platform. Instead of cleverly extracting the platform from the path. Not sure it's really necessary but I'll worry about it later.
+
+
 ### 2 November 2024
 
 Well. It took me entirely too long - had to take the scenic route as usual - but I think I have my latest function actually done.
@@ -95,9 +113,9 @@ Turns out my crucial Get-ChildItem command was showing me these True/False even 
 
 I tried everything trying to figureout how to get it to stop outputting like that but couldn't figure it out.
 
-I inadvertently found solution: assign the variable to the GetChild-Item which is in parens and piped to measure-object and after that close parens, a *.count*. So the variable is storing a number rather than the file list of the directory. 
+I inadvertently found solution: assign the variable to the GetChild-Item which is in parens and piped to measure-object and after that close parens, a *.count*. So the variable is storing a number (integer) rather than the file list of the directory. 
 
-I also did some weird typing stuff in that determineExistZipFile function. I don't know why it works but it does. So I'm not touch it.
+I also did some weird typing stuff in that determineExistZipFile function. I don't know why it works but it does. So I'm not going to touch it.
 
 ### 31 October 2024
 
