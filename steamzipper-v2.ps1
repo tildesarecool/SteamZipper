@@ -246,10 +246,7 @@ function determineExistZipFile {
     param (
         [Parameter(Mandatory=$true)]
         $szZipFileName
-        #[string]$PendingDate #(?)
     )
-#if ($path -like "*$platform*") {
-    # should i validate $szZipFileName parameter is a "leaf"?
     $ZipNameBreakout = $szZipFileName -split '_'
 
     $target = $ZipNameBreakout.Length - 3
@@ -259,24 +256,6 @@ function determineExistZipFile {
     $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
     $justzipname =  $zipNoExtra -join '_'
 
-#    Write-Host "data type of justzip name is $($justzipname.GetType().FullName)"
-
-    # ya, i know. It's kinda weird. I already do the type casting above so why are some arrays and some strings? 
-    # I don't know and at this point I don't want to know. This works so I'm going with it.
-
-    #$justzipname = $($justzipname)
-#    $justzipnameUnderscore = $justzipname -replace ' ', '_'
-
-##    if ( $justzipname -is [array] ) {
-##        $justzipname = $zipNoExtra -join '_'
-##        Write-Host "joined"
-##    } elseif ($justzipname -is [string]) {
-##        $justzipname -replace ' ', '_'
-##        Write-Host "replaced"
-##    }
-
-    #Write-Host "justzipname is $($justzipname)"
-    # the .Count method only works on strings, not arrays. but the arrays still come back false if not found so it's fine apparently
     Write-Host "after attempted string trickery justzipname value is $justzipname"
      $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
                    #(Get-ChildItem -Path  "P:\steamzipper\backup-steam" -Filter "$jstzipname*" | Measure-Object ).Count
@@ -290,22 +269,7 @@ function determineExistZipFile {
         Write-Host "fileexists turns out false - $fileExists"
         return $false
     }
-#     if ( ($fileExists -is [string]) -and ($fileExists -ne "")  ) {
-
-
-
-#        return $true
-#     } elseif (( ($fileExists -is [string]) -and ($fileExists -eq "")  ) ) {
-#        return $false
-#
-#     } elseif ($fileExists -eq $false) { # if   ( $fileExists -is [array] ) { #-and ($fileExists -eq $null)  ) {
-
-
-#        return $false
-#    }
 }
-
-#}
 
 function BuildZipTable  {
     #$folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
@@ -363,30 +327,6 @@ function BuildZipTable  {
         $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
         
         Write-Host "value of isthere is a zip is $isThereAzip"
-
-
-        #        if ($isThereAzip) {
-#            Write-Host "determineExistZipFile returned true - $isThereAzip"
-#        } else {
-#            Write-Host "determineExistZipFile returned false - $isThereAzip"
-#        }
-
-        #Write-Host "isthereazip value is $isThereAzip"
-
-#        if (-not ($isThereAzip) ) { 
-#            $isThereAzip = $false
-#            Write-Host "isthereazip is not - value is $isthereAzip"
-#        } else {
-#            $isThereAzip = $true
-#            Write-Host "isthereazip is now true - value is $isthereAzip"
-#        }
-#        $isThereAzip.type
-
-        #if ($isThereAzip -eq $true) {
-        #    Write-Host "determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
-        #} elseif ([bool]$isThereAzip -eq $false) {
-        #    Write-Host "else: determineExistZipFile return value from call is $isThereAzip. Filetype is $($isThereAzip.GetType().FullName)"
-        #}
 
 
     }
