@@ -326,7 +326,25 @@ function BuildZipTable  {
         Write-Host "from bildziptable - sending in zipFileNameWithModDate to isthereazip function, which is $zipFileNameWithModDate"
         $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
         
-        Write-Host "value of isthere is a zip is $isThereAzip"
+#        Write-Host "value of isthere is a zip is $isThereAzip"
+        # if an existing zip file exists in the destination, decide what to do
+        if ($isThereAzip) { # this is testing if $isThereAzip is true, meaning a zip file for the source exists. equivelent to $isThereAzip -eq $true.
+            # either call function to determine if the existing zip is newer or older than the source folder
+            # or
+            # do that logic here. since i already have the requisite info. have to see which way seems to make sense.
+            # in psuedo code:
+            # if (determined existing zip file) has last-write-date MORE RECENT than source Folder:
+                # there's reason to create a new zip file. the zip file should already contain the most version of the game
+            # else/otherwise
+                # the source folder is newer than the existing zip:
+                    # delete current zip
+                    # put this folder on the list to be zipped (which ever order these two things happen)
+        else { 
+            # probably no need for an else. if there's no existing zip the source folder will be added to the to-be-zipped list
+        }
+
+
+        }
 
 
     }
