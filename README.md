@@ -45,7 +45,7 @@ platforms but it seems unnecessary).
 
 ### Installation
 
-Since this is a single PowerShell script, that is the only the required. You can view the source "raw" and copy/paste into notepad, or download a zip file from the green "code" button or use the tags link and click on *v0.2.0-beta.1* to find a zip file. Or just clone the repo. Any of those ways will get you the script file which you would just run from PS console. So far as I know local admin privileges should not be required. 
+Since this is a single PowerShell script, that is the only thing required. You can view the source "raw" and copy/paste into notepad, or download a zip file from the green "code" button or use the tags link and click on *v0.2.0-beta.1* to find a zip file. Or just clone the repo. Any of those ways will get you the script file which you would just run from PS console. So far as I know local admin privileges should not be required. 
 
 As for permissions to run PS1 files in general that's between you and your PC administrator.
 
@@ -62,9 +62,9 @@ If I polish it more (and add an ascii art based logo, obviously) I might try and
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
 - Some semblance of dealing with duplicate zips via parameter or whatever
 - an argument to select a compression level besides the default
+- really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for compress-archive, 7zip, winrar or some other utility. 
 
 Might be a little much just for a thing that zips some folders.
-
 
 
 ---

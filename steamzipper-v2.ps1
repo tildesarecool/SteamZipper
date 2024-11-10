@@ -19,8 +19,10 @@ param (
     [Parameter(Mandatory=$false)] # Optional parameter with a default value
     [string]$jobs,
 
-    [Parameter(Mandatory=$false)] # Optional parameter: keep outdated zip file with old date code in name along side new/updated zip file.
-    [string]$KeepDuplicateZips  
+    [switch]$KeepDuplicateZips
+
+    #    [Parameter(Mandatory=$false)] # Optional parameter: keep outdated zip file with old date code in name along side new/updated zip file.
+#    [string]$KeepDuplicateZips  
 )
 
 # set default for max number of parallel jobs
@@ -231,7 +233,7 @@ function determineExistZipFile {
     # send in zip file (full path?)
     # it looks like the zip name without the date stamp
     # does a dig_dog*.zip in other words
-    # if there's a result it returns true
+    # if there's a result it returns true (or "if not equal to 0 return true, else false")
     # else return false
     # that's it
     # parameter would be something like PAC-MAN_10152024_steam.zip
@@ -256,20 +258,67 @@ function determineExistZipFile {
     $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
     $justzipname =  $zipNoExtra -join '_'
 
-    Write-Host "after attempted string trickery justzipname value is $justzipname"
+#    Write-Host "after attempted string trickery justzipname value is $justzipname"
      $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
                    #(Get-ChildItem -Path  "P:\steamzipper\backup-steam" -Filter "$jstzipname*" | Measure-Object ).Count
 
 #    $fileExists = [bool]$SeeIfExist
 
     if ($SeeIfExist -ne 0) {
-        Write-Host "fileexists turns out true - $fileExists"
+#        Write-Host "fileexists turns out true - $fileExists"
         return $true
     } else {
-        Write-Host "fileexists turns out false - $fileExists"
+#        Write-Host "fileexists turns out false - $fileExists"
         return $false
     }
 }
+
+function DetermineZipStatusDelete {
+    param (
+        [Parameter(Mandatory=$true)]
+        $szZipFileName,   # send in zip file name like "Dig_Dog_10152024_steam.zip"
+
+        [Parameter(Mandatory=$true)]
+        $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
+    ) 
+
+    $CurrentSrcGamePath = Join-Path -Path $sourceFolder -ChildPath $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
+
+    $determineExists = determineExistZipFile -szZipFileName $szZipFileName
+
+    #Write-Host " CurrentSrcGamePath value is $CurrentSrcGamePath and  determineExists value is $determineExists"
+
+    if ($determineExists -and (Test-Path -Path $CurrentSrcGamePath) ) {
+        $splitFileName = $szZipFileName -split '_' # splitFileName should be array now
+
+        #Write-Host "splitFileName value is $splitFileName"
+
+        $extractDate = $splitFileName[-2]
+        $convertExtractDateToDate = Get-FileDateStamp $extractDate
+        #Write-Host "extractdate value is $extractDate, and after conversion it's $convertExtractDateToDate"
+
+        $getFolderWriteDate = Get-FileDateStamp $CurrentSrcGamePath
+        #Write-Host "The last write date of $CurrentSrcGamePath, is $getFolderWriteDate"
+# i think this date thing is still not working right
+        if ($convertExtractDateToDate -lt $getFolderWriteDate ) {
+                    # zip date     "older"    folder date
+            Write-Host "date from zip filename OLDER ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+#            Write-Host "which means a new zip file is needed and the old one deleted"
+#            Write-Host "Zip file pending deletion: $szZipFileName" 
+#            Write-Host "$szZipFileName deleted successfully - return true"
+            return $true
+        } elseif ($convertExtractDateToDate -ge $getFolderWriteDate ) {
+            Write-Host "date from zip filename equal to or newer ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+#            Write-Host "return true. or do nothing. or this 'else' doesn't need to exist. whatever."
+            return $true
+        }
+    }
+}
+
+#############################################################
+# at least with this test and this test input (19 nov 2024) this function tests valid
+#DetermineZipStatusDelete "Dig_Dog_10152024_steam.zip" "Dig Dog"
+#############################################################
 
 function BuildZipTable  {
     #$folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
@@ -324,7 +373,8 @@ function BuildZipTable  {
 
 #        $isThereAzip = [bool]
         Write-Host "from bildziptable - sending in zipFileNameWithModDate to isthereazip function, which is $zipFileNameWithModDate"
-        $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
+#        $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
+    $isThereAzip = DetermineZipStatusDelete $zipFileNameWithModDate $_.Name
         
 #        Write-Host "value of isthere is a zip is $isThereAzip"
         # if an existing zip file exists in the destination, decide what to do
@@ -339,14 +389,9 @@ function BuildZipTable  {
                 # the source folder is newer than the existing zip:
                     # delete current zip
                     # put this folder on the list to be zipped (which ever order these two things happen)
-        else { 
+        } else { 
             # probably no need for an else. if there's no existing zip the source folder will be added to the to-be-zipped list
         }
-
-
-        }
-
-
     }
 }
 

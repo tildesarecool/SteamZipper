@@ -25,7 +25,7 @@ param (
 # I don't know why, just seemed to match the vibe of the function so why not?
 #Write-Host "value of filename length is $($filename.Length)"
 #Write-Host "value of preferredDateFormat length is $($PreferredDateFormat.Length)"
-if (   ($FileName.Length -eq $PreferredDateFormat.Length)   ) { #($FileName -is [string]) -and 
+if (   ($FileName.Length -eq $PreferredDateFormat.Length) ) { #($FileName -is [string]) -and 
     try {
         $datecode = $FileName
 #        Write-Host "datecode value is $datecode"
@@ -104,11 +104,7 @@ if ($determineExists -and (Test-Path -Path $SampleSrcGamePath) ) {
     Write-Host "justTheDate value is $splitFileName"
 
     $extractDate = $splitFileName[-2]
-    #$extractDate = [string]$extractDate
-
-    
-    
-        Write-Host "extractdate value is $extractDate"
+    Write-Host "extractdate value is $extractDate"
     
 
     $extractDateAsDate = Get-FileDateStamp $extractDate
