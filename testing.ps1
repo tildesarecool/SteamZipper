@@ -1,15 +1,21 @@
-$srcdir = "P:\steamzipper\steam temp storage"
-$destinationFolder = "P:\steamzipper\backup-steam"
-$sampleFile = "Markov_Alg"
-$sampleSrcFolderPath = "Markov Alg"
+#$srcdir = "P:\steamzipper\steam temp storage" # alienware
+#$destinationFolder = "P:\steamzipper\backup-steam" # alienware
+
+$srcdir = "C:\Users\keith\Documents\steam temp storage" # thinkpad
+$destinationFolder = "C:\Users\keith\Documents\steambackup" # thinkpad
+
+#### thinkpad
+$sampleFile = "PAC-MAN_256"
+$sampleSrcFolderPath = "PAC-MAN 256"
+#### thinkpad
 
 $CompressionExtension = "zip"
 
 $SampleSrcGamePath = Join-Path -Path $srcdir -ChildPath $sampleSrcFolderPath
 
-if (Test-Path -Path $SampleSrcGamePath) {
-    Write-Host "value of SampleSrcGamePath is $SampleSrcGamePath (which does exist)"# $($filename.Length)"
-}
+#if (Test-Path -Path $SampleSrcGamePath) {
+#    Write-Host "value of SampleSrcGamePath is $SampleSrcGamePath (which does exist)"# $($filename.Length)"
+#}
 
 $PreferredDateFormat = "MMddyyyy"
 
@@ -101,17 +107,27 @@ if (Test-Path -Path $FileName -PathType Container) {
 }   
 }
 
-    Write-Host "############################# sample date #############################"
-    Write-Host "sending in value of SampleSrcGamePath, which is $SampleSrcGamePath"
-    $fileDatestamp = Get-FileDateStamp $SampleSrcGamePath
+function DetermineZipStatusDelete {
+    param (
+        [Parameter(Mandatory=$true)]
+        $szSrcFullGameDirPath,
+        [Parameter(Mandatory=$true)]
+        $szDestZipFileName
+    )
+    Write-Host "sending in value of SampleSrcGamePath, which is $szSrcFullGameDirPath"
+    $fileDatestamp = Get-FileDateStamp $szSrcFullGameDirPath
     Write-Host "value received back is $fileDatestamp"
-    Write-Host "############################# sample date #############################"
 
+#    Write-Host "############################# sample data #############################"
+#    Write-Host "sending in value of SampleSrcGamePath, which is $SampleSrcGamePath"
+#    $fileDatestamp = Get-FileDateStamp $SampleSrcGamePath
+#    Write-Host "value received back is $fileDatestamp"
+#    Write-Host "############################# sample data #############################"
 
-    $getchildReturnResultCount = (Get-ChildItem -Path $destinationFolder -Filter "$sampleFile*" | Measure-Object).Count
-    Write-Host "Number of results returned was $getchildReturnResultCount (search was '$sampleFile')" 
+    $getchildReturnResultCount = (Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*" | Measure-Object).Count
+    Write-Host "Number of results returned was $getchildReturnResultCount (search was '$szDestZipFileName')" 
     if ($getchildReturnResultCount -gt 0) {
-        $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$sampleFile*"
+        $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*"
         Write-Host "that returned value is apparently $getchildReturn"
         $justFilename = Split-Path $getchildReturn -Leaf
         Write-Host "the zip file from that should probably be $justFilename"
@@ -127,10 +143,13 @@ if (Test-Path -Path $FileName -PathType Container) {
     }
 
     if ($zipfiledateAsDate -le  $fileDatestamp) {
-        Write-Host "zip file is older"
+        Write-Host "zip file date is equal to or older than folder"
     } else {
-        Write-Host "folder is older"
+        Write-Host "folder is older than zip file - new zip file creation necessary"
     }
+}
+
+DetermineZipStatusDelete "C:\Users\keith\Documents\steam temp storage" "Andro_Dunos_II_10232024_steam.zip"
 
 #$determineExists = determineExistZipFile -szZipFileName $sampleFile
 
