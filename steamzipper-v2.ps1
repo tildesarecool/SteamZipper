@@ -286,29 +286,30 @@ function DetermineZipStatusDelete {
 
     $determineExists = determineExistZipFile -szZipFileName $szZipFileName
 
-    #Write-Host " CurrentSrcGamePath value is $CurrentSrcGamePath and  determineExists value is $determineExists"
+    Write-Host "Inside DetermineZipStatusDelete, CurrentSrcGamePath value is $CurrentSrcGamePath and  determineExists value is $determineExists"
 
     if ($determineExists -and (Test-Path -Path $CurrentSrcGamePath) ) {
         $splitFileName = $szZipFileName -split '_' # splitFileName should be array now
 
-        #Write-Host "splitFileName value is $splitFileName"
+        Write-Host "splitFileName value is $splitFileName"
 
         $extractDate = $splitFileName[-2]
         $convertExtractDateToDate = Get-FileDateStamp $extractDate
-        #Write-Host "extractdate value is $extractDate, and after conversion it's $convertExtractDateToDate"
+        Write-Host "convertExtractDateToDate value is $convertExtractDateToDate" #, and after conversion it's $convertExtractDateToDate"
 
         $getFolderWriteDate = Get-FileDateStamp $CurrentSrcGamePath
         #Write-Host "The last write date of $CurrentSrcGamePath, is $getFolderWriteDate"
 # i think this date thing is still not working right
+        #Write-Host "the value $convertExtractDateToDate ($splitFileName) for the zip file, is being compared to $getFolderWriteDate ($CurrentSrcGamePath), date of folder"
         if ($convertExtractDateToDate -lt $getFolderWriteDate ) {
                     # zip date     "older"    folder date
-            Write-Host "date from zip filename OLDER ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+            #Write-Host "date from zip filename OLDER ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
 #            Write-Host "which means a new zip file is needed and the old one deleted"
 #            Write-Host "Zip file pending deletion: $szZipFileName" 
 #            Write-Host "$szZipFileName deleted successfully - return true"
             return $true
-        } elseif ($convertExtractDateToDate -ge $getFolderWriteDate ) {
-            Write-Host "date from zip filename equal to or newer ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+        } else { #} ($convertExtractDateToDate -ge $getFolderWriteDate ) {
+            #Write-Host "date from zip filename equal to or newer ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
 #            Write-Host "return true. or do nothing. or this 'else' doesn't need to exist. whatever."
             return $true
         }
@@ -372,8 +373,14 @@ function BuildZipTable  {
         
 
 #        $isThereAzip = [bool]
-        Write-Host "from bildziptable - sending in zipFileNameWithModDate to isthereazip function, which is $zipFileNameWithModDate"
+        #Write-Host "from bildziptable - sending in zipFileNameWithModDate to isthereazip function, which is $zipFileNameWithModDate"
 #        $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
+        Write-Host "from bildziptable - sending in zipFileNameWithModDate ($zipFileNameWithModDate) along with the folder '$($_.Name)'"
+
+        # i figured out why i wasn't getting the output i was expecting: I'm sending the wrong zip name in. 
+        # the function works. i'm just giving it the wrong input string.
+        # so i need to either use the existing zip file name already IN the destination folder...or 
+        # call this from from the other function? 
     $isThereAzip = DetermineZipStatusDelete $zipFileNameWithModDate $_.Name
         
 #        Write-Host "value of isthere is a zip is $isThereAzip"
