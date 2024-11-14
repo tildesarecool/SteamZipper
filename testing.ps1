@@ -1,8 +1,8 @@
-#$srcdir = "P:\steamzipper\steam temp storage" # alienware
-#$destinationFolder = "P:\steamzipper\backup-steam" # alienware
+$srcdir = "P:\steamzipper\steam temp storage" # alienware
+$destinationFolder = "P:\steamzipper\backup-steam" # alienware
 
-$srcdir = "C:\Users\keith\Documents\steam temp storage" # thinkpad
-$destinationFolder = "C:\Users\keith\Documents\steambackup" # thinkpad
+#$srcdir = "C:\Users\keith\Documents\steam temp storage" # thinkpad
+#$destinationFolder = "C:\Users\keith\Documents\steambackup" # thinkpad
 
 #### thinkpad
 $sampleFile = "PAC-MAN_256"
@@ -81,16 +81,18 @@ $justdate = ""
 
 if (Test-Path -Path $FileName -PathType Container) {
     # this may be a little redundant but I'm just going to go with it
+    Write-Host "Inside get-filedatestamp, the filename parameter is $FileName"
     $FolderModDate = (Get-Item -Path $FileName).LastWriteTime.ToString($PreferredDateFormat)
     $FolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
     if ($FolderModDate -is [datetime]) {
         return $FolderModDate
     }
+#} elseif  (Test-Path -Path $FileName -PathType Leaf) {
 } elseif  (Test-Path -Path $FileName -PathType Leaf) {
     try {
         $ext = $FileName -split '\.' 
         $ext = $ext[-1]
-        if ($ext -eq $CompressionExtension) { # this may not be necessary. different extensions could be added though. So I'll keeep it.
+        #if ($ext -eq $CompressionExtension) { # this may not be necessary. different extensions could be added though. So I'll keeep it.
             $justdate = $FileName -split "_"
             if ($justdate.Length -ge 2) {
                 $justdate = $justdate[-2]
@@ -98,13 +100,15 @@ if (Test-Path -Path $FileName -PathType Container) {
                     return [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
                 }
             }
-        }
+        #}
     }
     catch {
         Write-Host "Unable to determine or convert to date object from value $justdate"
         return $null
      }
-}   
+}  elseif  ( (!(Test-Path -Path $FileName -PathType Leaf)) -and (!( Test-Path -Path $FileName -PathType Container) ) )    {
+    Write-Host "the filename parameters, $FileName, is not a folder or a file"
+}
 }
 
 function DetermineZipStatusDelete {
@@ -115,7 +119,12 @@ function DetermineZipStatusDelete {
         $szDestZipFileName
     )
     Write-Host "sending in value of SampleSrcGamePath, which is $szSrcFullGameDirPath"
+    if (Test-Path -Path $szSrcFullGameDirPath) {
     $fileDatestamp = Get-FileDateStamp $szSrcFullGameDirPath
+    } else {
+        Write-Host "Unable to find $szSrcFullGameDirPath"
+        return $null
+    }
     Write-Host "value received back is $fileDatestamp"
 
 #    Write-Host "############################# sample data #############################"
@@ -149,8 +158,11 @@ function DetermineZipStatusDelete {
     }
 }
 
-DetermineZipStatusDelete "C:\Users\keith\Documents\steam temp storage" "Andro_Dunos_II_10232024_steam.zip"
+DetermineZipStatusDelete $srcdir "Horizon_Chase_10172024_steam.zip"
 
+#DetermineZipStatusDelete "C:\Users\keith\Documents\steambackup" "Horizon_Chase_10172024_steam.zip"
+
+#"C:\Users\keith\Documents\steambackup"
 #$determineExists = determineExistZipFile -szZipFileName $sampleFile
 
 #    if ($determineExists) { # -and (Test-Path -Path $SampleSrcGamePath) ) {
