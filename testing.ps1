@@ -158,7 +158,7 @@ function DetermineZipStatusDelete {
     }
 }
 
-DetermineZipStatusDelete $srcdir "Horizon_Chase_10172024_steam.zip"
+DetermineZipStatusDelete $srcdir "Horizon_Chase_10172024_steam"
 
 #DetermineZipStatusDelete "C:\Users\keith\Documents\steambackup" "Horizon_Chase_10172024_steam.zip"
 

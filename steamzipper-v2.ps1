@@ -2,11 +2,18 @@
 # https://github.com/tildesarecool/SteamZipper
 # Oct 2024
 
-# module to look into later:
-# https://github.com/santisq/PSCompression/tree/main
-# (i found it on the PS gallery https://www.powershellgallery.com/packages/PSCompression/2.0.7)
+# pwsh -command '& { .\steamzipper-v2.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\backup-steam\" -KeepDuplicateZips }'
 
-
+# A perpetually grunting man-freak-beast dressed in WWII-garb semi-terrorizes the French countryside.
+# Meanwhile, a vacationing couple take shelter in an ominous, gothic chateau for the night. The elderly 
+# keepers of the grand castle tell a tale of a galleon running aground from five pillagers setting a 
+# huge bonfire on a nearby beach to lure the ship in. This prompts the old drunkard owner to take a 
+# shotgun with unlimited ammo out to murder a wild black stallion for ten continuous hours. The ghostly 
+# galleon then erupts from a cake doubling as a mountainside as its contents of barrels and an 
+# Egyptian casket spill forth. A mummy emerges with a thunder clap and the young vacationing woman 
+# ends up in the middle of it all in a fight for survival after leaving the safety of the medieval fortress.
+# Color / 73 mins / 1985
+# HORSE! HORSE! HORSE! HORSE! HORSE! HORSE! HORSE! HORSE! 
 
 # Script parameters (this should be the very first thing in the script)
 param (
@@ -172,9 +179,8 @@ function Get-FileDateStamp {
         [Parameter(Mandatory=$true)]
         $FileName
     )
+    
 
-    # this is something of an "undocumented feature". Sending in random date codes in 8-digit format returns a date object.
-    # I don't know why, just seemed to match the vibe of the function so why not?
     if (   ($FileName -is [string]) -and ($FileName.Length -eq $PreferredDateFormat.Length)   ) {
         try {
             $datecode = $FileName
@@ -185,36 +191,42 @@ function Get-FileDateStamp {
         }
     }
 
-    $item = $FileName
     $justdate = ""
 
-    if (Test-Path -Path $item -PathType Container) {
-        # this may be a little redundant but I'm just going to go with it
-        $FolderModDate = (Get-Item -Path $item).LastWriteTime.ToString($PreferredDateFormat)
+    if (Test-Path -Path $FileName -PathType Container) {
+        Write-Host "Inside get-filedatestamp, the filename parameter is $FileName"
+        $FolderModDate = (Get-Item -Path $FileName).LastWriteTime.ToString($PreferredDateFormat)
         $FolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
         if ($FolderModDate -is [datetime]) {
             return $FolderModDate
         }
-    } elseif  (Test-Path -Path $item -PathType Leaf) {
-        try {
-            $ext = $item -split '\.' 
-            $ext = $ext[-1]
-            if ($ext -eq $CompressionExtension) { # this may not be necessary. different extensions could be added though. So I'll keeep it.
-                $justdate = $item -split "_"
-                if ($justdate.Length -ge 2) {
-                    $justdate = $justdate[-2]
-                    if ($justdate.Length -eq 8) {
-                        return [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
+
+        } elseif  (Test-Path -Path $FileName -PathType Leaf) {
+            try {
+                    $justdate = $FileName -split "_"
+                    if ($justdate.Length -ge 2) {
+                        $justdate = $justdate[-2]
+                        if ($justdate.Length -eq 8) {
+                            return [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
+                        }
                     }
-                }
             }
-        }
-        catch {
-            Write-Host "Unable to determine or convert to date object from value $justdate"
-            return $null
-         }
-    }   
+            catch {
+                Write-Host "Unable to determine or convert to date object from value $justdate"
+                return $null
+             }
+        }  elseif  ( (!(Test-Path -Path $FileName -PathType Leaf)) -and (!( Test-Path -Path $FileName -PathType Container) ) )    {
+            Write-Host "the filename parameters, $FileName, is not a folder or a file"
+    }
 }
+
+#############################################################
+# at least as of this test (16:04 nov 14th) this function tests valid
+# Get-FileDateStamp "P:\steamzipper\backup-steam\Outzone_10152024_steam.zip"
+# Get-FileDateStamp "P:\steamzipper\steam temp storage\PAC-MAN"
+# Get-FileDateStamp "10162024"
+#############################################################
+
 
 #$getDate = Get-FileDateStamp "P:\steamzipper\backup\Dig_Dog_10152024_steam.zip"
 #$getDate = Get-FileDateStamp "P:\steamzipper\steam temp storage\Horizon Chase"
@@ -251,15 +263,22 @@ function determineExistZipFile {
     )
     $ZipNameBreakout = $szZipFileName -split '_'
 
-    $target = $ZipNameBreakout.Length - 3
 
-    $zipNoExtra = $($ZipNameBreakout[0..$($target)])
+    if ( $ZipNameBreakout.Length -gt 3 ) {
+        $target = $ZipNameBreakout.Length - 3
 
-    $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
-    $justzipname =  $zipNoExtra -join '_'
+        $zipNoExtra = $($ZipNameBreakout[0..$($target)])
+
+        $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
+        $justzipname =  $zipNoExtra -join '_'
+    } else {        
+        $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
+        $justzipname =  $zipNoExtra -join '_'
+    }
 
 #    Write-Host "after attempted string trickery justzipname value is $justzipname"
-     $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
+#     $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
+    $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
                    #(Get-ChildItem -Path  "P:\steamzipper\backup-steam" -Filter "$jstzipname*" | Measure-Object ).Count
 
 #    $fileExists = [bool]$SeeIfExist
@@ -276,116 +295,147 @@ function determineExistZipFile {
 function DetermineZipStatusDelete {
     param (
         [Parameter(Mandatory=$true)]
-        $szZipFileName,   # send in zip file name like "Dig_Dog_10152024_steam.zip"
-
+        $szSrcFullGameDirPath,
         [Parameter(Mandatory=$true)]
-        $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
-    ) 
+        $szDestZipFileName
+    )
+    Write-Host "sending in value of SampleSrcGamePath, which is $szSrcFullGameDirPath (DetermineZipStatusDelete)"
+    if (Test-Path -Path $szSrcFullGameDirPath) {
+        $fileDatestamp = Get-FileDateStamp $szSrcFullGameDirPath
+        Write-Host "test-path came back true on path $szSrcFullGameDirPath (variable szSrcFullGameDirPath) (DetermineZipStatusDelete)"
 
-    $CurrentSrcGamePath = Join-Path -Path $sourceFolder -ChildPath $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
+    } else {
+        Write-Host "Unable to find $szSrcFullGameDirPath"
+        return $null
+    }
+    Write-Host "date received back from get-filedatestamp is $fileDatestamp (inside DetermineZipStatusDelete)"
 
-    $determineExists = determineExistZipFile -szZipFileName $szZipFileName
+    $getchildReturnResultCount = (Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*" | Measure-Object).Count
+    Write-Host "Number of results returned was $getchildReturnResultCount (search was '$szDestZipFileName') (inside DetermineZipStatusDelete)" 
+    if ($getchildReturnResultCount -gt 0) {
+        $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*"
+        Write-Host "that returned value is apparently $getchildReturn (inside DetermineZipStatusDelete)"
+        $justFilename = Split-Path $getchildReturn -Leaf
+        Write-Host "the zip file from that should probably be $justFilename (inside DetermineZipStatusDelete)"
+        $splitFileName = $justFilename -split '_'
+        $justdate = $splitFileName[-2]
+        Write-Host "out of that, the date part is likely $justdate (inside DetermineZipStatusDelete)"
+        $zipfiledateAsDate = Get-FileDateStamp $justdate
+        Write-Host "############################# zip file date #############################"
+        Write-Host "converted to a date object, that would be $zipfiledateasdate (inside DetermineZipStatusDelete)"
+        Write-Host "############################# zip file date #############################"
 
-    Write-Host "Inside DetermineZipStatusDelete, CurrentSrcGamePath value is $CurrentSrcGamePath and  determineExists value is $determineExists"
+        Write-Host "comparing zip filedate $zipfiledateAsDate to folderdate $fileDatestamp  (inside DetermineZipStatusDelete)"
+    } else {
+        Write-Host "No zip file matches found for $szDestZipFileName"
+        return
+    }
 
-    if ($determineExists -and (Test-Path -Path $CurrentSrcGamePath) ) {
-        $splitFileName = $szZipFileName -split '_' # splitFileName should be array now
+    # based on observation of the files in explorer, 
+    # $zipfiledateAsDate is the zip file and
+    # filedatestamp
 
-        Write-Host "splitFileName value is $splitFileName"
 
-        $extractDate = $splitFileName[-2]
-        $convertExtractDateToDate = Get-FileDateStamp $extractDate
-        Write-Host "convertExtractDateToDate value is $convertExtractDateToDate" #, and after conversion it's $convertExtractDateToDate"
+    #if ($zipfiledateAsDate -le  $fileDatestamp) {
+    if ($zipfiledateAsDate -lt  $fileDatestamp) {        
+        Write-Host "zip file date $zipfiledateAsDate is older than folder write date $fileDatestamp (inside DetermineZipStatusDelete):`
+the zip file is out of date so a new one needs to be created" 
 
-        $getFolderWriteDate = Get-FileDateStamp $CurrentSrcGamePath
-        #Write-Host "The last write date of $CurrentSrcGamePath, is $getFolderWriteDate"
-# i think this date thing is still not working right
-        #Write-Host "the value $convertExtractDateToDate ($splitFileName) for the zip file, is being compared to $getFolderWriteDate ($CurrentSrcGamePath), date of folder"
-        if ($convertExtractDateToDate -lt $getFolderWriteDate ) {
-                    # zip date     "older"    folder date
-            #Write-Host "date from zip filename OLDER ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
-#            Write-Host "which means a new zip file is needed and the old one deleted"
-#            Write-Host "Zip file pending deletion: $szZipFileName" 
-#            Write-Host "$szZipFileName deleted successfully - return true"
-            return $true
-        } else { #} ($convertExtractDateToDate -ge $getFolderWriteDate ) {
-            #Write-Host "date from zip filename equal to or newer ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
-#            Write-Host "return true. or do nothing. or this 'else' doesn't need to exist. whatever."
-            return $true
-        }
+        Write-Host "outdated zip file $justFilename will be deleted" -BackgroundColor Red -ForegroundColor White 
+    } else {
+        Write-Host "The zip files date - $zipfiledateAsDate - is equal to or newer than the folder's last write date - $fileDatestamp so new zip does not need`
+to be created (inside DetermineZipStatusDelete)"
     }
 }
 
 #############################################################
-# at least with this test and this test input (19 nov 2024) this function tests valid
-#DetermineZipStatusDelete "Dig_Dog_10152024_steam.zip" "Dig Dog"
+# at least with this test and this test input (14 nov 2024) this function tests valid
+# DetermineZipStatusDelete $sourceFolder "Horizon_Chase_10172024_steam.zip"
 #############################################################
 
+
+####################### (outdated) ##########################
+# at least with this test and this test input (9 nov 2024) this function tests valid
+#DetermineZipStatusDelete "Dig_Dog_10152024_steam.zip" "Dig Dog"
+####################### (outdated) ##########################
+
+
 function BuildZipTable  {
-    #$folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
-    #Write-Host "value of folders is $folders"
     $ZipFoldersTable = @{}
     $buildZipList = @()
     $buildSrcFolderList = @()
-
-#    foreach ($subfolder in $folders) {
-    # i was debaining on whether to use this $SourceDir directly from the parameter passed in to the script
-    # or define it separately as a parameter
-    # I decided to use the script parameter directly because that parameter is mandatory and validated elsewhere
-
     $zipListTracker = 0
-    # Write-Host "about to enter for-each object loop"
-    # Write-Host "value of source folder is $sourceFolder"
     Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
-#       Write-Host "starting for each object loop"
-        # start construction of zip file name:
-        # 1. replace spaces with '_' underscores in folder name
         $folderNameUnderscores = $_.Name -replace ' ', '_'
-#        Write-Host "folderName is $folderName"
-#        $folderPath = $_.FullName
-#        Write-Host "folderPath is $folderPath"
-        $FolderModDate = $_.LastWriteTime.ToString($PreferredDateFormat)
-#        Write-Host "FolderModDate is $FolderModDate"
-
-        # 2. bring in the date stamp (converted to date object)
-#        $FolderModDate = Get-FileDateStamp $folderName
-        # 2a. convert date object to date code string
- #       $FolderModDateCode = $folderModDate.ToString($PreferredDateFormat)
-        # 3. store the platform name for appending
-        $platformName = Get-PlatformShortName
-#        # 4. join the variables into one long zip file name...
-        $zipFileNameWithModDate = "$folderNameUnderscores`_$($FolderModDate)`_$platformName.$CompressionExtension"
-        $zipFileNameNoModDate = "$folderNameUnderscores`_$($platformName)`.$CompressionExtension"
-#        Write-Host "zipFileNameNoModDate is $zipFileNameNoModDate"
-#        Write-Host "zipFileNameWithModDate is $zipFileNameWithModDate"
-
-
-
-#        #5. join destination path together with the 
-        $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileNameWithModDate
-#        Write-Host "zip path is $zipPath"
-
-        $sizeKB = Get-FolderSizeKB -folderPath $_.FullName
-        if (-not ( $sizeKB ) ) {
- #           Write-Output "Skipping '$($_.Name)' due to set conditions."
- #           Write-Host "sizeKB value is $sizeKB"
-        }
+        #$FolderModDate = $_.LastWriteTime.ToString($PreferredDateFormat) # not sure yet I'll need this (handled in DetermineZipStatusDelete)
+        #Write-Host
+        Write-Host "******************** start whole process ******************** (inside BuildZipTable)"
+        #Write-Host
+        Write-Host "value of folderNameUnderscores is $folderNameUnderscores (inside BuildZipTable)"
+        Write-Host "value of FolderModDate is $FolderModDate (inside BuildZipTable)"
+        Write-Host "value of $-underscore-name is $($_.name) (inside BuildZipTable)"
         
 
-#        $isThereAzip = [bool]
-        #Write-Host "from bildziptable - sending in zipFileNameWithModDate to isthereazip function, which is $zipFileNameWithModDate"
-#        $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
-        Write-Host "from bildziptable - sending in zipFileNameWithModDate ($zipFileNameWithModDate) along with the folder '$($_.Name)'"
+        # i found the issue i was having: instead of getting the date back of a game subfolder in source i was getting the date on the 
+        # source folder itself. Which is why every folder date was coming back the same (11/15/2024)
+
+        $CurrGameDir = Join-Path -path $sourceFolder -ChildPath $_.name # this is all it took
+
+        #Write-Host "value of CurrGameDir is $CurrGameDir"
+
+        #DetermineZipStatusDelete $sourceFolder $folderNameUnderscores # folderNameUnderscores is the wrong variable and that is messing up output from DetermineZipStatusDelete
+        #DetermineZipStatusDelete $sourceFolder $($_.name) # this didn't work
+
+        if ($KeepDuplicateZips) {
+            Write-Host "Outdated zip files will not be deleted per preference." -ForegroundColor Green
+        } else {
+            Write-Host "Oudated zips will be deleted" -ForegroundColor Red
+            DetermineZipStatusDelete $CurrGameDir $folderNameUnderscores
+        }
+
+    }
+}
+    
+    #############################################################
+     BuildZipTable
+    #############################################################
+#        # 2. bring in the date stamp (converted to date object)
+#        # 2a. convert date object to date code string
+#        # 3. store the platform name for appending
+#        $platformName = Get-PlatformShortName
+##        # 4. join the variables into one long zip file name...
+#        $zipFileNameWithModDate = "$folderNameUnderscores`_$($FolderModDate)`_$platformName.$CompressionExtension"
+#        $zipFileNameNoModDate = "$folderNameUnderscores`_$($platformName)`.$CompressionExtension"
+##        #5. join destination path together with the 
+#        $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileNameWithModDate
+#        $sizeKB = Get-FolderSizeKB -folderPath $_.FullName
+#        if (-not ( $sizeKB ) ) {
+#            # (coming soon)
+#        }
+#        Write-Host "from bildziptable - sending in zipFileNameWithModDate ($zipFileNameWithModDate) along with the folder '$($_.Name)'"
+
+
+
+
+
+
+
+
+# Clean up ReadOnly variables at script end: VERY LAST STATEMENTS OF ENTIRE SCRIPT
+Remove-Variable -Name "PreferredDateFormat" -Scope Global -Force 
+Remove-Variable -Name "maxJobs" -Scope Global -Force
+Remove-Variable -Name "sizeLimitKB" -Scope Global -Force
+Remove-Variable -Name "CompressionExtension" -Scope Global -Force
+
+
+
 
         # i figured out why i wasn't getting the output i was expecting: I'm sending the wrong zip name in. 
         # the function works. i'm just giving it the wrong input string.
         # so i need to either use the existing zip file name already IN the destination folder...or 
         # call this from from the other function? 
-    $isThereAzip = DetermineZipStatusDelete $zipFileNameWithModDate $_.Name
-        
-#        Write-Host "value of isthere is a zip is $isThereAzip"
-        # if an existing zip file exists in the destination, decide what to do
-        if ($isThereAzip) { # this is testing if $isThereAzip is true, meaning a zip file for the source exists. equivelent to $isThereAzip -eq $true.
+####$isThereAzip = DetermineZipStatusDelete $zipFileNameWithModDate $_.Name
+########if ($isThereAzip) { # this is testing if $isThereAzip is true, meaning a zip file for the source exists. equivelent to $isThereAzip -eq $true.
             # either call function to determine if the existing zip is newer or older than the source folder
             # or
             # do that logic here. since i already have the requisite info. have to see which way seems to make sense.
@@ -396,15 +446,8 @@ function BuildZipTable  {
                 # the source folder is newer than the existing zip:
                     # delete current zip
                     # put this folder on the list to be zipped (which ever order these two things happen)
-        } else { 
+########} else { 
             # probably no need for an else. if there's no existing zip the source folder will be added to the to-be-zipped list
-        }
-    }
-}
-
-#############################################################
-BuildZipTable
-#############################################################
 
 
         #if ( (Test-Path -Path ($zipFileNameWithModDate -like "$folderNameUnderscores*$platformName.$CompressionExtension") ) ) {}
@@ -477,14 +520,236 @@ BuildZipTable
 #    return $ZipFoldersTable
 #} # end of the BuildZipTable  function. if that wasn't clear.
 
+#############################################################
+
+# function Get-FileDateStamp {
+#     # $FileName is either a path to a folder or the zip file name. 
+#     # must pass in whole path for the folder but just a file name is fine for zip
+#     # so the folder i do the lastwritetime.tostring to get the date
+#     # and zip file name parse to date code with the [-2]
+# param (
+#     [Parameter(Mandatory=$true)]
+#     $FileName
+# )
+# 
+# # this is something of an "undocumented feature". Sending in random date codes in 8-digit format returns a date object.
+# # I don't know why, just seemed to match the vibe of the function so why not?
+# if (   ($FileName -is [string]) -and ($FileName.Length -eq $PreferredDateFormat.Length)   ) {
+#     try {
+#         $datecode = $FileName
+#         return [datetime]::ParseExact($datecode,$PreferredDateFormat,$null)
+#     } catch {
+#         Write-Output "Warning: Invalid DateCode format. Expected format is $PreferredDateFormat."
+#         return $null
+#     }
+# }
+# 
+# $item = $FileName
+# $justdate = ""
+# 
+# if (Test-Path -Path $item -PathType Container) {
+#     # this may be a little redundant but I'm just going to go with it
+#     $FolderModDate = (Get-Item -Path $item).LastWriteTime.ToString($PreferredDateFormat)
+#     $FolderModDate = [datetime]::ParseExact($FolderModDate,$PreferredDateFormat,$null)
+#     if ($FolderModDate -is [datetime]) {
+#         return $FolderModDate
+#     }
+# } elseif  (Test-Path -Path $item -PathType Leaf) {
+#     try {
+#         $ext = $item -split '\.' 
+#         $ext = $ext[-1]
+#         if ($ext -eq $CompressionExtension) { # this may not be necessary. different extensions could be added though. So I'll keeep it.
+#             $justdate = $item -split "_"
+#             if ($justdate.Length -ge 2) {
+#                 $justdate = $justdate[-2]
+#                 if ($justdate.Length -eq 8) {
+#                     return [datetime]::ParseExact($justdate,$PreferredDateFormat,$null)
+#                 }
+#             }
+#         }
+#     }
+#     catch {
+#         Write-Host "Unable to determine or convert to date object from value $justdate"
+#         return $null
+#      }
+# }   
+# }
+
+#############################################################
+
+# function DetermineZipStatusDelete {
+#     param (
+#         [Parameter(Mandatory=$true)]
+#         $szZipFileName,   # send in zip file name like "Dig_Dog_10152024_steam.zip"
+# 
+#         [Parameter(Mandatory=$true)]
+#         $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
+#     ) 
+# 
+#     $CurrentSrcGamePath = Join-Path -Path $sourceFolder -ChildPath $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
+# 
+#     $determineExists = determineExistZipFile -szZipFileName $szZipFileName
+# 
+#     Write-Host "Inside DetermineZipStatusDelete, CurrentSrcGamePath value is $CurrentSrcGamePath and  determineExists value is $determineExists"
+# 
+#     if ($determineExists -and (Test-Path -Path $CurrentSrcGamePath) ) {
+#         $splitFileName = $szZipFileName -split '_' # splitFileName should be array now
+# 
+#         Write-Host "splitFileName value is $splitFileName"
+# 
+#         $extractDate = $splitFileName[-2]
+#         $convertExtractDateToDate = Get-FileDateStamp $extractDate
+#         Write-Host "convertExtractDateToDate value is $convertExtractDateToDate" #, and after conversion it's $convertExtractDateToDate"
+# 
+#         $getFolderWriteDate = Get-FileDateStamp $CurrentSrcGamePath
+#         #Write-Host "The last write date of $CurrentSrcGamePath, is $getFolderWriteDate"
+# # i think this date thing is still not working right
+#         #Write-Host "the value $convertExtractDateToDate ($splitFileName) for the zip file, is being compared to $getFolderWriteDate ($CurrentSrcGamePath), date of folder"
+#         if ($convertExtractDateToDate -lt $getFolderWriteDate ) {
+#                     # zip date     "older"    folder date
+#             #Write-Host "date from zip filename OLDER ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+# #            Write-Host "which means a new zip file is needed and the old one deleted"
+# #            Write-Host "Zip file pending deletion: $szZipFileName" 
+# #            Write-Host "$szZipFileName deleted successfully - return true"
+#             return $true
+#         } else { #} ($convertExtractDateToDate -ge $getFolderWriteDate ) {
+#             #Write-Host "date from zip filename equal to or newer ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+# #            Write-Host "return true. or do nothing. or this 'else' doesn't need to exist. whatever."
+#             return $true
+#         }
+#     }
+# }
+#############################################################
+
+# function DetermineZipStatusDelete {
+#     param (
+#         [Parameter(Mandatory=$true)]
+#         $szZipFileName,   # send in zip file name like "Dig_Dog_10152024_steam.zip"
+# 
+#         [Parameter(Mandatory=$true)]
+#         $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
+#     ) 
+# 
+#     $CurrentSrcGamePath = Join-Path -Path $sourceFolder -ChildPath $szSrcFolderName   # Also send in folder name, like "Dig Dog" ($_ in the foreach, right? of the buildtable function?)
+# 
+#     $determineExists = determineExistZipFile -szZipFileName $szZipFileName
+# 
+#     Write-Host "Inside DetermineZipStatusDelete, CurrentSrcGamePath value is $CurrentSrcGamePath and  determineExists value is $determineExists"
+# 
+#     if ($determineExists -and (Test-Path -Path $CurrentSrcGamePath) ) {
+#         $splitFileName = $szZipFileName -split '_' # splitFileName should be array now
+# 
+#         Write-Host "splitFileName value is $splitFileName"
+# 
+#         $extractDate = $splitFileName[-2]
+#         $convertExtractDateToDate = Get-FileDateStamp $extractDate
+#         Write-Host "convertExtractDateToDate value is $convertExtractDateToDate" #, and after conversion it's $convertExtractDateToDate"
+# 
+#         $getFolderWriteDate = Get-FileDateStamp $CurrentSrcGamePath
+#         #Write-Host "The last write date of $CurrentSrcGamePath, is $getFolderWriteDate"
+# # i think this date thing is still not working right
+#         #Write-Host "the value $convertExtractDateToDate ($splitFileName) for the zip file, is being compared to $getFolderWriteDate ($CurrentSrcGamePath), date of folder"
+#         if ($convertExtractDateToDate -lt $getFolderWriteDate ) {
+#                     # zip date     "older"    folder date
+#             #Write-Host "date from zip filename OLDER ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+# #            Write-Host "which means a new zip file is needed and the old one deleted"
+# #            Write-Host "Zip file pending deletion: $szZipFileName" 
+# #            Write-Host "$szZipFileName deleted successfully - return true"
+#             return $true
+#         } else { #} ($convertExtractDateToDate -ge $getFolderWriteDate ) {
+#             #Write-Host "date from zip filename equal to or newer ($convertExtractDateToDate) than folder write date ($getFolderWriteDate)"
+# #            Write-Host "return true. or do nothing. or this 'else' doesn't need to exist. whatever."
+#             return $true
+#         }
+#     }
+# }
+#############################################################
 
 
 
-# Clean up ReadOnly variables at script end: VERY LAST STATEMENTS OF ENTIRE SCRIPT
-Remove-Variable -Name "PreferredDateFormat" -Scope Global -Force 
-Remove-Variable -Name "maxJobs" -Scope Global -Force
-Remove-Variable -Name "sizeLimitKB" -Scope Global -Force
-Remove-Variable -Name "CompressionExtension" -Scope Global -Force
+#############################################################
+# function BuildZipTable  {
+#     #$folders = Get-ChildItem -Path $sourceFolder -Directory #output is all subfolder paths on one line
+#     #Write-Host "value of folders is $folders"
+#     $ZipFoldersTable = @{}
+#     $buildZipList = @()
+#     $buildSrcFolderList = @()
+# 
+# #    foreach ($subfolder in $folders) {
+#     # i was debaining on whether to use this $SourceDir directly from the parameter passed in to the script
+#     # or define it separately as a parameter
+#     # I decided to use the script parameter directly because that parameter is mandatory and validated elsewhere
+# 
+#     $zipListTracker = 0
+#     # Write-Host "about to enter for-each object loop"
+#     # Write-Host "value of source folder is $sourceFolder"
+#     Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
+# #       Write-Host "starting for each object loop"
+#         # start construction of zip file name:
+#         # 1. replace spaces with '_' underscores in folder name
+#         $folderNameUnderscores = $_.Name -replace ' ', '_'
+# #        Write-Host "folderName is $folderName"
+# #        $folderPath = $_.FullName
+# #        Write-Host "folderPath is $folderPath"
+#         $FolderModDate = $_.LastWriteTime.ToString($PreferredDateFormat)
+# #        Write-Host "FolderModDate is $FolderModDate"
+# 
+#         # 2. bring in the date stamp (converted to date object)
+# #        $FolderModDate = Get-FileDateStamp $folderName
+#         # 2a. convert date object to date code string
+#  #       $FolderModDateCode = $folderModDate.ToString($PreferredDateFormat)
+#         # 3. store the platform name for appending
+#         $platformName = Get-PlatformShortName
+# #        # 4. join the variables into one long zip file name...
+#         $zipFileNameWithModDate = "$folderNameUnderscores`_$($FolderModDate)`_$platformName.$CompressionExtension"
+#         $zipFileNameNoModDate = "$folderNameUnderscores`_$($platformName)`.$CompressionExtension"
+# #        Write-Host "zipFileNameNoModDate is $zipFileNameNoModDate"
+# #        Write-Host "zipFileNameWithModDate is $zipFileNameWithModDate"
+# 
+# 
+# 
+# #        #5. join destination path together with the 
+#         $zipPath = Join-Path -Path $destinationFolder -ChildPath $zipFileNameWithModDate
+# #        Write-Host "zip path is $zipPath"
+# 
+#         $sizeKB = Get-FolderSizeKB -folderPath $_.FullName
+#         if (-not ( $sizeKB ) ) {
+#  #           Write-Output "Skipping '$($_.Name)' due to set conditions."
+#  #           Write-Host "sizeKB value is $sizeKB"
+#         }
+#         
+# 
+# #        $isThereAzip = [bool]
+#         #Write-Host "from bildziptable - sending in zipFileNameWithModDate to isthereazip function, which is $zipFileNameWithModDate"
+# #        $isThereAzip = determineExistZipFile -szZipFileName $zipFileNameWithModDate 
+#         Write-Host "from bildziptable - sending in zipFileNameWithModDate ($zipFileNameWithModDate) along with the folder '$($_.Name)'"
+# 
+#         # i figured out why i wasn't getting the output i was expecting: I'm sending the wrong zip name in. 
+#         # the function works. i'm just giving it the wrong input string.
+#         # so i need to either use the existing zip file name already IN the destination folder...or 
+#         # call this from from the other function? 
+#     $isThereAzip = DetermineZipStatusDelete $zipFileNameWithModDate $_.Name
+#         
+# #        Write-Host "value of isthere is a zip is $isThereAzip"
+#         # if an existing zip file exists in the destination, decide what to do
+#         if ($isThereAzip) { # this is testing if $isThereAzip is true, meaning a zip file for the source exists. equivelent to $isThereAzip -eq $true.
+#             # either call function to determine if the existing zip is newer or older than the source folder
+#             # or
+#             # do that logic here. since i already have the requisite info. have to see which way seems to make sense.
+#             # in psuedo code:
+#             # if (determined existing zip file) has last-write-date MORE RECENT than source Folder:
+#                 # there's reason to create a new zip file. the zip file should already contain the most version of the game
+#             # else/otherwise
+#                 # the source folder is newer than the existing zip:
+#                     # delete current zip
+#                     # put this folder on the list to be zipped (which ever order these two things happen)
+#         } else { 
+#             # probably no need for an else. if there's no existing zip the source folder will be added to the to-be-zipped list
+#         }
+#     }
+# }
+#############################################################
+
 
 
 #if (-not (Define-Jobs) ) {

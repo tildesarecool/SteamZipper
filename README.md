@@ -69,6 +69,30 @@ Might be a little much just for a thing that zips some folders.
 
 ---
 
+### 16 November 2024
+
+I have re-re-done the functions for the date comparisons - again. Somewhere I picked up a bug where I was getting the write date back for the source folder as opposed to the game subfolder. Took a while to figure that out. 
+
+I saved that with this one line:
+
+```$CurrGameDir = Join-Path -path $sourceFolder -ChildPath $_.name```
+
+And a lot of debugging print lines. Many, many print lines. 
+
+After only a week to figure out like two lines, I might be ready to resume what I was doing before. Okay it might have been two weeks. But "oh who remembers"?
+
+I actually did a lot of testing in ```testing.ps1```. Almost re-created the entire script just to test things. It might have ended up making it take longer than it would have other wise. Well maybe not. I should probably learn more git. Since it's made for this exact purpose.
+
+As of now my series of functions that tests and compares dates of folders and zip files is working. And using the ```-KeepDuplicateZips``` flag actuall results in a different series of write-lines. 
+
+So progress however slight is still progress.
+
+On a probably entirely separate note, i realized my variables seemed to be persistent across running of the script over and over again. So I came up with running the script this way:
+
+```pwsh -command '& { .\steamzipper-v2.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\backup-steam\" -KeepDuplicateZips }'```
+
+This runs the script in a PS session and exits when it's done, leaving all those variable values hopefully behind. Kind of like my favorite of ```cmd /c``` but for powershell. I also started coloring different parts of my debug writelines. Probably should have done that sooner.
+
 ### 8 November 2024
 
 I did and re-did that zip-file-exists true/false function again. Or again by 30 times it seems like. Anyway I hope it's good now because I'm pretty sick of it.
@@ -190,3 +214,18 @@ I made quite a bit of progress today on the re-write. I'm going one very small i
 ### 15 October 2024
 
 First version written Oct. 15th. Okay I didn't write it an AI did. Which is why I'm trying to re-write it from scratch as the original currently doesn't work. I had a working version. I asked for new features and now it doesn't work. Instead of reverting to the working version I'm re-writing it myself. It's better this way anyway. 
+
+---
+
+```
+A perpetually grunting man-freak-beast dressed in WWII-garb semi-terrorizes the French countryside.
+Meanwhile, a vacationing couple take shelter in an ominous, gothic chateau for the night. The elderly 
+keepers of the grand castle tell a tale of a galleon running aground from five pillagers setting a 
+huge bonfire on a nearby beach to lure the ship in. This prompts the old drunkard owner to take a 
+shotgun with unlimited ammo out to murder a wild black stallion for ten continuous hours. The ghostly 
+galleon then erupts from a cake doubling as a mountainside as its contents of barrels and an 
+Egyptian casket spill forth. A mummy emerges with a thunder clap and the young vacationing woman 
+ends up in the middle of it all in a fight for survival after leaving the safety of the medieval fortress.
+Color / 73 mins / 1985
+HORSE! HORSE! HORSE! HORSE! HORSE! HORSE! HORSE! HORSE! 
+```
