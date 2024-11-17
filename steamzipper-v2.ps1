@@ -375,6 +375,7 @@ function BuildZipTable  {
         Write-Host "value of FolderModDate is $FolderModDate (inside BuildZipTable)"
         Write-Host "value of $-underscore-name is $($_.name) (inside BuildZipTable)"
         
+        
 
         # i found the issue i was having: instead of getting the date back of a game subfolder in source i was getting the date on the 
         # source folder itself. Which is why every folder date was coming back the same (11/15/2024)
