@@ -179,8 +179,6 @@ function Get-FileDateStamp {
         [Parameter(Mandatory=$true)]
         $FileName
     )
-    
-
     if (   ($FileName -is [string]) -and ($FileName.Length -eq $PreferredDateFormat.Length)   ) {
         try {
             $datecode = $FileName
@@ -190,9 +188,7 @@ function Get-FileDateStamp {
             return $null
         }
     }
-
     $justdate = ""
-
     if (Test-Path -Path $FileName -PathType Container) {
         Write-Host "Inside get-filedatestamp, the filename parameter is $FileName"
         $FolderModDate = (Get-Item -Path $FileName).LastWriteTime.ToString($PreferredDateFormat)
@@ -342,6 +338,14 @@ function DetermineZipStatusDelete {
 the zip file is out of date so a new one needs to be created" 
 
         Write-Host "outdated zip file $justFilename will be deleted" -BackgroundColor Red -ForegroundColor White 
+        if (Test-Path $getchildReturn) {
+            try {
+                Remove-Item $getchildReturn -Force
+                Write-Host "successfullyl deleted $justFilename" -BackgroundColor Green -ForegroundColor White
+            } catch {
+                Write-Host "Unable to delete file $justFilename"
+            }
+        }
     } else {
         Write-Host "The zip files date - $zipfiledateAsDate - is equal to or newer than the folder's last write date - $fileDatestamp so new zip does not need`
 to be created (inside DetermineZipStatusDelete)"
