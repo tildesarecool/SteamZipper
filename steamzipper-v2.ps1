@@ -150,8 +150,8 @@ function Get-FolderSizeKB {
     param (
         [string]$folderPath
     )
-    # Specify the folder path and the size limit (in KB)
-    # $sizeLimitKB now defined as constant at top of script
+    # Specify the folder path 
+    # $sizeLimitKB defined as constant at top of script
     $FolderSizeKBTracker = 0
 
     foreach ($file in Get-ChildItem -Path $folderPath -Recurse -File) {
@@ -237,56 +237,6 @@ function Get-FileDateStamp {
 #Get-FileDateStamp "10222024"
 #############################################################
 
-function determineExistZipFile {
-    # send in zip file (full path?)
-    # it looks like the zip name without the date stamp
-    # does a dig_dog*.zip in other words
-    # if there's a result it returns true (or "if not equal to 0 return true, else false")
-    # else return false
-    # that's it
-    # parameter would be something like PAC-MAN_10152024_steam.zip
-    # this tests destination directory for files PAC-MAN_*.zip
-    # don't need a number of matches, just a yes/no if it exists in destination
-    # fatal flaw for this function: the loop for buildziptable is starting the "source" directory
-    # while the zip files are stored in the "destination" directory
-    # and i'd rather not nest foreach-object loops
-    # so maybe i'm making overly complex. maybe all i need is 
-    # get-childitem -path $destinationfolder -Filter $($ZipNameBreakout[0..$($target)])
-    # and either it comes back with a match or it doesn't
-    param (
-        [Parameter(Mandatory=$true)]
-        $szZipFileName
-    )
-    $ZipNameBreakout = $szZipFileName -split '_'
-
-
-    if ( $ZipNameBreakout.Length -gt 3 ) {
-        $target = $ZipNameBreakout.Length - 3
-
-        $zipNoExtra = $($ZipNameBreakout[0..$($target)])
-
-        $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
-        $justzipname =  $zipNoExtra -join '_'
-    } else {        
-        $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
-        $justzipname =  $zipNoExtra -join '_'
-    }
-
-#    Write-Host "after attempted string trickery justzipname value is $justzipname"
-#     $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
-    $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
-                   #(Get-ChildItem -Path  "P:\steamzipper\backup-steam" -Filter "$jstzipname*" | Measure-Object ).Count
-
-#    $fileExists = [bool]$SeeIfExist
-
-    if ($SeeIfExist -ne 0) {
-#        Write-Host "fileexists turns out true - $fileExists"
-        return $true
-    } else {
-#        Write-Host "fileexists turns out false - $fileExists"
-        return $false
-    }
-}
 
 function DetermineZipStatusDelete {
     param (
@@ -302,26 +252,45 @@ function DetermineZipStatusDelete {
 
     } else {
         Write-Host "Unable to find $szSrcFullGameDirPath"
-        return $null
+        return #$null
     }
     Write-Host "date received back from get-filedatestamp is $fileDatestamp (inside DetermineZipStatusDelete)"
 
     $getchildReturnResultCount = (Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*" | Measure-Object).Count
+
+    if ($getchildReturnResultCount -is [int] -and $getchildReturnResultCount -gt 1 )  {
+        Write-Host "getchildReturnResultCount came back greater than 1" -BackgroundColor Magenta -ForegroundColor White
+    }
+    #$getchildReturnResultCount = determineExistZipFile $szDestZipFileName
     Write-Host "Number of results returned was $getchildReturnResultCount (search was '$szDestZipFileName') (inside DetermineZipStatusDelete)" 
     if ($getchildReturnResultCount -gt 0) {
-        $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*"
-        Write-Host "that returned value is apparently $getchildReturn (inside DetermineZipStatusDelete)"
-        $justFilename = Split-Path $getchildReturn -Leaf
-        Write-Host "the zip file from that should probably be $justFilename (inside DetermineZipStatusDelete)"
-        $splitFileName = $justFilename -split '_'
-        $justdate = $splitFileName[-2]
-        Write-Host "out of that, the date part is likely $justdate (inside DetermineZipStatusDelete)"
-        $zipfiledateAsDate = Get-FileDateStamp $justdate
-        Write-Host "############################# zip file date #############################"
-        Write-Host "converted to a date object, that would be $zipfiledateasdate (inside DetermineZipStatusDelete)"
-        Write-Host "############################# zip file date #############################"
+#    if ($getchildReturnResultCount -ge 1) {
+#     if ($getchildReturnResultCount -eq 1) {
+        foreach ($DstZipPath in $getchildReturnResultCount) { # getchildReturnResultCount should be an int so it shouldn't work with foreach. need to work on this function
+            $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*" # this line with $szDestZipFileName* is in wrong place. this is iterable object
+            Write-Host "that returned value is apparently $getchildReturn (inside DetermineZipStatusDelete)"
+            $justFilename = Split-Path $getchildReturn -Leaf
+            Write-Host "the zip file from that should probably be $justFilename (inside DetermineZipStatusDelete)"
+            $splitFileName = $justFilename -split '_'
+            $justdate = $splitFileName[-2]
+            Write-Host "out of that, the date part is likely $justdate (inside DetermineZipStatusDelete)"
+            $zipfiledateAsDate = Get-FileDateStamp $justdate
+            Write-Host "############################# zip file date #############################"
+            Write-Host "converted to a date object, that would be $zipfiledateasdate (inside DetermineZipStatusDelete)"
+            Write-Host "############################# zip file date #############################"
 
-        Write-Host "comparing zip filedate $zipfiledateAsDate to folderdate $fileDatestamp  (inside DetermineZipStatusDelete)"
+            Write-Host "comparing zip filedate $zipfiledateAsDate to folderdate $fileDatestamp  (inside DetermineZipStatusDelete)"
+        #} elseif ($getchildReturnResultCount -gt 1) {
+         #   #$GetTypeListBool = ($getchildReturnResultCount -is [array])
+         #   # Write-Host "The type of number is: $($number.GetType().Name)"
+         #   $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*"
+         #   foreach ( $item in $getchildReturn ) {
+         #       Write-Host "inside foreach loop, item is $item (inside DetermineZipStatusDelete)"
+         #       $GetType = $($item.GetType().Name)
+         #       Write-Host "number of items in getchildReturnResultCount is more than 1 and GetType value of item came back as $GetType" -BackgroundColor White -ForegroundColor Black
+         #   }
+        }
+
     } else {
         Write-Host "No zip file matches found for $szDestZipFileName"
         return
@@ -331,6 +300,7 @@ function DetermineZipStatusDelete {
     # $zipfiledateAsDate is the zip file and
     # filedatestamp
 
+    $DeletePath = Join-Path -Path $destinationFolder -ChildPath "deleted"
 
     #if ($zipfiledateAsDate -le  $fileDatestamp) {
     if ($zipfiledateAsDate -lt  $fileDatestamp) {        
@@ -338,10 +308,12 @@ function DetermineZipStatusDelete {
 the zip file is out of date so a new one needs to be created" 
 
         Write-Host "outdated zip file $justFilename will be deleted" -BackgroundColor Red -ForegroundColor White 
-        if (Test-Path $getchildReturn) {
+        if ( (Test-Path $getchildReturn) -and (Test-Path $DeletePath) ) {
             try {
-                Remove-Item $getchildReturn -Force
-                Write-Host "successfullyl deleted $justFilename" -BackgroundColor Green -ForegroundColor White
+                #Remove-Item $getchildReturn -Force
+                # I've changed this to moving for the purposes of of debugging
+                Move-Item -Path $getchildReturn -Destination $DeletePath # ( Join-Path -Path $destinationFolder -ChildPath "deleted" )
+                Write-Host "successfullyl deleted $justFilename (or moved, as the case may be)" -BackgroundColor Green -ForegroundColor White
             } catch {
                 Write-Host "Unable to delete file $justFilename"
             }
@@ -357,12 +329,10 @@ to be created (inside DetermineZipStatusDelete)"
 # DetermineZipStatusDelete $sourceFolder "Horizon_Chase_10172024_steam.zip"
 #############################################################
 
-
 ####################### (outdated) ##########################
 # at least with this test and this test input (9 nov 2024) this function tests valid
 #DetermineZipStatusDelete "Dig_Dog_10152024_steam.zip" "Dig Dog"
 ####################### (outdated) ##########################
-
 
 function BuildZipTable  {
     $ZipFoldersTable = @{}
@@ -371,6 +341,7 @@ function BuildZipTable  {
     $zipListTracker = 0
     Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
         $folderNameUnderscores = $_.Name -replace ' ', '_'
+        #$folderNameUnderscores =  $zipNoExtra -join '_'
         #$FolderModDate = $_.LastWriteTime.ToString($PreferredDateFormat) # not sure yet I'll need this (handled in DetermineZipStatusDelete)
         #Write-Host
         Write-Host "******************** start whole process ******************** (inside BuildZipTable)"
@@ -378,16 +349,12 @@ function BuildZipTable  {
         Write-Host "value of folderNameUnderscores is $folderNameUnderscores (inside BuildZipTable)"
         Write-Host "value of FolderModDate is $FolderModDate (inside BuildZipTable)"
         Write-Host "value of $-underscore-name is $($_.name) (inside BuildZipTable)"
-        
-        
-
         # i found the issue i was having: instead of getting the date back of a game subfolder in source i was getting the date on the 
         # source folder itself. Which is why every folder date was coming back the same (11/15/2024)
 
         $CurrGameDir = Join-Path -path $sourceFolder -ChildPath $_.name # this is all it took
 
         #Write-Host "value of CurrGameDir is $CurrGameDir"
-
         #DetermineZipStatusDelete $sourceFolder $folderNameUnderscores # folderNameUnderscores is the wrong variable and that is messing up output from DetermineZipStatusDelete
         #DetermineZipStatusDelete $sourceFolder $($_.name) # this didn't work
 
@@ -397,6 +364,8 @@ function BuildZipTable  {
             Write-Host "Oudated zips will be deleted" -ForegroundColor Red
             DetermineZipStatusDelete $CurrGameDir $folderNameUnderscores
         }
+
+
 
     }
 }
@@ -419,21 +388,11 @@ function BuildZipTable  {
 #        }
 #        Write-Host "from bildziptable - sending in zipFileNameWithModDate ($zipFileNameWithModDate) along with the folder '$($_.Name)'"
 
-
-
-
-
-
-
-
 # Clean up ReadOnly variables at script end: VERY LAST STATEMENTS OF ENTIRE SCRIPT
 Remove-Variable -Name "PreferredDateFormat" -Scope Global -Force 
 Remove-Variable -Name "maxJobs" -Scope Global -Force
 Remove-Variable -Name "sizeLimitKB" -Scope Global -Force
 Remove-Variable -Name "CompressionExtension" -Scope Global -Force
-
-
-
 
         # i figured out why i wasn't getting the output i was expecting: I'm sending the wrong zip name in. 
         # the function works. i'm just giving it the wrong input string.

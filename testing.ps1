@@ -321,3 +321,62 @@ DetermineZipStatusDelete $srcdir "Horizon_Chase_10172024_steam"
 #            }
 #        }   
 #}
+
+
+
+
+#######################################################
+# i spent a long time working on this function only to realize i wasn't actually using it (in steamZipper). so I'm saving it here.
+
+# function determineExistZipFile {
+#     # send in zip file (full path?)
+#     # it looks like the zip name without the date stamp
+#     # does a dig_dog*.zip in other words
+#     # if there's a result it returns true (or "if not equal to 0 return true, else false")
+#     # else return false
+#     # that's it
+#     # parameter would be something like PAC-MAN_10152024_steam.zip
+#     # this tests destination directory for files PAC-MAN_*.zip
+#     # don't need a number of matches, just a yes/no if it exists in destination
+#     # fatal flaw for this function: the loop for buildziptable is starting the "source" directory
+#     # while the zip files are stored in the "destination" directory
+#     # and i'd rather not nest foreach-object loops
+#     # so maybe i'm making overly complex. maybe all i need is 
+#     # get-childitem -path $destinationfolder -Filter $($ZipNameBreakout[0..$($target)])
+#     # and either it comes back with a match or it doesn't
+#     param (
+#         [Parameter(Mandatory=$true)]
+#         $szZipFileName
+#     )
+#     $ZipNameBreakout = $szZipFileName -split '_'
+# 
+# 
+#     if ( $ZipNameBreakout.Length -gt 3 ) {
+#         $target = $ZipNameBreakout.Length - 3
+# 
+#         $zipNoExtra = $($ZipNameBreakout[0..$($target)])
+# 
+#         $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
+#         $justzipname =  $zipNoExtra -join '_'
+#     } else {        
+#         $justzipname = $zipNoExtra -replace ' ', '_'# -or $zipNoExtra -join '_')
+#         $justzipname =  $zipNoExtra -join '_'
+#     }
+# 
+# #    Write-Host "after attempted string trickery justzipname value is $justzipname"
+# #     $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
+#     $SeeIfExist =  (Get-ChildItem -Path $destinationFolder -Filter "$justzipname*"  | Measure-Object).Count
+#                    #(Get-ChildItem -Path  "P:\steamzipper\backup-steam" -Filter "$jstzipname*" | Measure-Object ).Count
+# 
+# #    $fileExists = [bool]$SeeIfExist
+# 
+#     if ($SeeIfExist -ne 0) {
+# #        Write-Host "fileexists turns out true - $fileExists"
+#         return $true
+#         #return ([int]$SeeIfExist)
+#     } else {
+# #        Write-Host "fileexists turns out false - $fileExists"
+#         return $false
+# #        return 0
+#     }
+# }
