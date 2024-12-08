@@ -270,16 +270,35 @@ function DetermineZipStatusDelete {
             $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*" # this line with $szDestZipFileName* is in wrong place. this is iterable object
             Write-Host "that returned value is apparently $getchildReturn (inside DetermineZipStatusDelete)"
             $justFilename = Split-Path $getchildReturn -Leaf
-            Write-Host "the zip file from that should probably be $justFilename (inside DetermineZipStatusDelete)"
-            $splitFileName = $justFilename -split '_'
-            $justdate = $splitFileName[-2]
-            Write-Host "out of that, the date part is likely $justdate (inside DetermineZipStatusDelete)"
-            $zipfiledateAsDate = Get-FileDateStamp $justdate
-            Write-Host "############################# zip file date #############################"
-            Write-Host "converted to a date object, that would be $zipfiledateasdate (inside DetermineZipStatusDelete)"
-            Write-Host "############################# zip file date #############################"
+            Write-Host "the zip file from that should probably be $justFilename (inside DetermineZipStatusDelete)" # justFilename is iterable object
 
-            Write-Host "comparing zip filedate $zipfiledateAsDate to folderdate $fileDatestamp  (inside DetermineZipStatusDelete)"
+#            if ( ($justFilename.Length -ge 2) -and (-not  $null )   ) {
+                
+                for ($i = 0; $i -lt $justFilename.Length; $i++) {
+                    $splitFileName = $justFilename[$i] -split '_'
+                    Write-Host "value of splitFileName i is $splitFileName" -ForegroundColor Blue
+                    #if ( ($justFilename.Length -ge 2) -and (-not  $null ) -and ($splitFileName[-1] -eq $platformName )  ) {
+                    if (  ($splitFileName[-1] -eq $platformName )  ) {
+                        
+                        Write-Host "value of justfilename i is $($justFilename[$i])" -ForegroundColor Blue
+#                        Write-Host "value of splitFileName i is $splitFileName" -ForegroundColor Blue
+                    }
+                }
+
+#                for ($i = 0; $i -lt $justFilename.Length; $i++) {
+#                   $splitFileName = $justFilename[$i] -split '_'
+
+
+#                   Write-Host "justFilename[i] -split '_' comes out to $splitFileName" -ForegroundColor Yellow
+#                   $justdate = $splitFileName[-2]
+#                   Write-Host "out of that, the date part is likely $justdate (inside DetermineZipStatusDelete)"
+#                   $zipfiledateAsDate = Get-FileDateStamp $justdate
+
+#                Write-Host "############################# zip file date #############################" -ForegroundColor Green
+#                Write-Host "converted to a date object, that would be $zipfiledateasdate (inside DetermineZipStatusDelete)" -ForegroundColor Blue -BackgroundColor White
+#                Write-Host "############################# zip file date #############################" -ForegroundColor Green
+#
+#                Write-Host "comparing zip filedate $zipfiledateAsDate to folderdate $fileDatestamp  (inside DetermineZipStatusDelete)"
         #} elseif ($getchildReturnResultCount -gt 1) {
          #   #$GetTypeListBool = ($getchildReturnResultCount -is [array])
          #   # Write-Host "The type of number is: $($number.GetType().Name)"
@@ -289,12 +308,14 @@ function DetermineZipStatusDelete {
          #       $GetType = $($item.GetType().Name)
          #       Write-Host "number of items in getchildReturnResultCount is more than 1 and GetType value of item came back as $GetType" -BackgroundColor White -ForegroundColor Black
          #   }
+              #  }
+            #} else { continue }
         }
 
-    } else {
-        Write-Host "No zip file matches found for $szDestZipFileName"
-        return
-    }
+    } #else {
+      #  Write-Host "No zip file matches found for $szDestZipFileName"
+      #  return
+    #}
 
     # based on observation of the files in explorer, 
     # $zipfiledateAsDate is the zip file and
@@ -344,7 +365,7 @@ function BuildZipTable  {
         #$folderNameUnderscores =  $zipNoExtra -join '_'
         #$FolderModDate = $_.LastWriteTime.ToString($PreferredDateFormat) # not sure yet I'll need this (handled in DetermineZipStatusDelete)
         #Write-Host
-        Write-Host "******************** start whole process ******************** (inside BuildZipTable)"
+        Write-Host "******************** start whole process ******************** (inside BuildZipTable)" -ForegroundColor Magenta -BackgroundColor White
         #Write-Host
         Write-Host "value of folderNameUnderscores is $folderNameUnderscores (inside BuildZipTable)"
         Write-Host "value of FolderModDate is $FolderModDate (inside BuildZipTable)"
