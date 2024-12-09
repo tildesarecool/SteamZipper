@@ -269,21 +269,30 @@ function DetermineZipStatusDelete {
         foreach ($DstZipPath in $getchildReturnResultCount) { # getchildReturnResultCount should be an int so it shouldn't work with foreach. need to work on this function
             $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*" # this line with $szDestZipFileName* is in wrong place. this is iterable object
             Write-Host "that returned value is apparently $getchildReturn (inside DetermineZipStatusDelete)"
-            $justFilename = Split-Path $getchildReturn -Leaf
-            Write-Host "the zip file from that should probably be $justFilename (inside DetermineZipStatusDelete)" # justFilename is iterable object
+            
+            #create initial array
+            $justFilename = @()
+            # add 1 more matches to array. Also re-re-emphasize the "this is an array" part.
+            $justFilename = @($getchildReturn | ForEach-Object { Split-Path $_ -Leaf })
 
-#            if ( ($justFilename.Length -ge 2) -and (-not  $null )   ) {
+            #$justFilename = Split-Path $getchildReturn -Leaf
+            Write-Host "the zip file from that should probably be (array type) $justFilename (inside DetermineZipStatusDelete)" -ForegroundColor White -BackgroundColor Green # justFilename is iterable object
+            # iterate through array and printout items
+            foreach ($file in $justFilename) {
+                Write-Host "The contents of justFilename is $file" -ForegroundColor Red
+            }
+            #            if ( ($justFilename.Length -ge 2) -and (-not  $null )   ) {
                 
-                for ($i = 0; $i -lt $justFilename.Length; $i++) {
-                    $splitFileName = $justFilename[$i] -split '_'
-                    Write-Host "value of splitFileName i is $splitFileName" -ForegroundColor Blue
-                    #if ( ($justFilename.Length -ge 2) -and (-not  $null ) -and ($splitFileName[-1] -eq $platformName )  ) {
-                    if (  ($splitFileName[-1] -eq $platformName )  ) {
-                        
-                        Write-Host "value of justfilename i is $($justFilename[$i])" -ForegroundColor Blue
-#                        Write-Host "value of splitFileName i is $splitFileName" -ForegroundColor Blue
-                    }
-                }
+#                for ($i = 0; $i -lt $justFilename.Length; $i++) {
+#                    $splitFileName = $justFilename[$i] -split '_'
+#                    Write-Host "value of splitFileName i is $splitFileName" -ForegroundColor Blue
+#                    #if ( ($justFilename.Length -ge 2) -and (-not  $null ) -and ($splitFileName[-1] -eq $platformName )  ) {
+#                    if (  ($splitFileName[-1] -eq $platformName )  ) {
+#                        
+#                        Write-Host "value of justfilename i is $($justFilename[$i])" -ForegroundColor Blue
+##                        Write-Host "value of splitFileName i is $splitFileName" -ForegroundColor Blue
+#                    }
+#                }
 
 #                for ($i = 0; $i -lt $justFilename.Length; $i++) {
 #                   $splitFileName = $justFilename[$i] -split '_'
