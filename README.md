@@ -69,6 +69,31 @@ Might be a little much just for a thing that zips some folders.
 
 ---
 
+### 12 December 2024
+
+I didn't intend to take a long break but I'm back at it now.
+
+I was working on this edge case in which I found multiple existing zip files in the destination. This apparently automatically creates an iteratable object containing the names of both zip files. And also an array of one item if there was just he one match. 
+
+I ended up typcasting that to an Array-for-sure-type. Then I was getting this error from PS when there no matches in that initial filter search. So I eventually found that -notcontains is an option. 
+
+```
+if (  ($getchildReturn -notcontains $null) -and (Test-Path $getchildReturn)  -and (Test-Path $DeletePath) ) {
+        try {
+            Write-Host "successfullyl deleted $justFilename (or moved, as the case may be)" -BackgroundColor Green -ForegroundColor White
+        } catch {
+            Write-Host "Unable to delete file $justFilename"
+        }
+    }
+} else {
+    Write-Host "The zip files date - $zipfiledateAsDate - is equal to or newer than the folder's last write date - $fileDatestamp so new zip does not need`
+to be created (inside DetermineZipStatusDelete)"
+```
+
+It may not make sense out of context but this is what's working for me. 
+
+Also, while trying random things with Test-path, I found what appeared to a way to test if file objects are older or newer than other file objects. Which is what I've been trying to do this whole time. Really wish I had found this sooner. This is [convered breifly in a blog entry I found](https://lazyadmin.nl/powershell/test-path/). I may have to use Test-Path instead of what I've been doing. 
+
 ### 16 November 2024
 
 I have re-re-done the functions for the date comparisons - again. Somewhere I picked up a bug where I was getting the write date back for the source folder as opposed to the game subfolder. Took a while to figure that out. 
