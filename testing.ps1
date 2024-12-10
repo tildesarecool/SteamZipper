@@ -143,7 +143,7 @@ function DetermineZipStatusDelete {
         $splitFileName = $justFilename -split '_'
         $justdate = $splitFileName[-2]
         Write-Host "out of that, the date part is likely $justdate"
-        $zipfiledateAsDate = Get-FileDateStamp $justdate
+        #$zipfiledateAsDate = Get-FileDateStamp $justdate
         Write-Host "############################# zip file date #############################"
         Write-Host "converted to a date object, that would be $zipfiledateasdate"
         Write-Host "############################# zip file date #############################"
