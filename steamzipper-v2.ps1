@@ -267,6 +267,7 @@ function DetermineZipStatusDelete {
 #    if ($getchildReturnResultCount -ge 1) {
 #     if ($getchildReturnResultCount -eq 1) {
     $justFilename = @()
+    $zipfiledateAsDate = @()
         foreach ($DstZipPath in $getchildReturnResultCount) { # getchildReturnResultCount should be an int so it shouldn't work with foreach. need to work on this function
             $getchildReturn = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*" # this line with $szDestZipFileName* is in wrong place. this is iterable object
             Write-Host "that returned value is apparently $getchildReturn (inside DetermineZipStatusDelete)"
@@ -284,6 +285,8 @@ function DetermineZipStatusDelete {
             # iterate through array and printout items
             foreach ($zipFilenameMatch in $justFilename) {
                 Write-Host "The contents of justFilename is $zipFilenameMatch and the length of justfilename is $($justFilename.Length)" -ForegroundColor Red
+                $zipfiledateAsDate = Get-FileDateStamp $justFilename
+                Write-Host "The contents of zipfiledateAsDate is $zipfiledateAsDate" -ForegroundColor Red
             }
         }
     } 
@@ -291,8 +294,10 @@ function DetermineZipStatusDelete {
     $DeletePath = Join-Path -Path $destinationFolder -ChildPath "deleted"
 
     #if ($zipfiledateAsDate -le  $fileDatestamp) {
+    #$zipfiledateAsDate = Get-FileDateStamp $justdate
+
     if ($zipfiledateAsDate -lt  $fileDatestamp) {        
-        Write-Host "zip file date $zipfiledateAsDate is older than folder write date $fileDatestamp (inside DetermineZipStatusDelete):`
+        Write-Host "zip file date __ $zipfiledateAsDate __ is older than folder write date $fileDatestamp (inside DetermineZipStatusDelete):`
 the zip file is out of date so a new one needs to be created" 
 #if (  $getchildReturn -notcontains $null ) {
 #    Write-Host "variable getchildReturn valid" -ForegroundColor Yellow -BackgroundColor Blue
