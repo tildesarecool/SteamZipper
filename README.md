@@ -6,8 +6,10 @@ I'm not assuming this exact script hasn't already been done in many other langua
 ### Current Script status: Broken
 (the flagged "release" is good)
 
+Note: v3 is still in early stages of development and v2 is still broken.
+
 USAGE:
-```steamzipper-v2.ps1 <source folder> <destination folder> <optional: enable-jobs> ```
+```steamzipper-v3.ps1 <source folder> <destination folder> <optional: enable-jobs> ```
 
 (enable-jobs is broken)
 
@@ -20,7 +22,7 @@ To generate the name of the zip file it takes into account
 
 Example:
 
-```.\steamzipper-v2.ps1 "P:\Program Files (x86)\Steam\steamapps\common" "P:\steamzipper\backup\" ```
+```.\steamzipper-v3.ps1 "P:\Program Files (x86)\Steam\steamapps\common" "P:\steamzipper\backup\" ```
 
 Example archive name would be something like:
 ```Horizon_Chase_10152024_steam.zip```
