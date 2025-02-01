@@ -69,6 +69,14 @@ Might be a little much just for a thing that zips some folders.
 
 ---
 
+### 1 February 2025
+
+I certainly took a long time off. I decided to re-write the script with a few things in mind from the start and call it v3. Even though v2 is still broken. 
+
+I did start to implement a JSON file for saving preferences and Start-Transcript for logging what happens. That's about it. I haven't even run it yet. Just working on it.
+
+
+
 ### 12 December 2024
 
 I didn't intend to take a long break but I'm back at it now.
