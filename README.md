@@ -70,6 +70,9 @@ Might be a little much just for a thing that zips some folders.
 
 
 ---
+### 3 February 2025
+
+I'm stilling filling in the functions from the old versions into this v3. I haven't even tried test running it quite yet. Hopefully this process won't take too much longer.
 
 ### 1 February 2025
 
