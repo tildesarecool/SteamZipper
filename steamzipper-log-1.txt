@@ -1,0 +1,32 @@
+**********************
+PowerShell transcript start
+Start time: 20250204141558
+Username: GALACTICA\Keith
+RunAs User: GALACTICA\Keith
+Configuration Name: 
+Machine: GALACTICA (Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -command & { .\steamzipper-v3.ps1 "P:\steamzipper\steam temp storage_2" "P:\steamzipper\backup-steam\"  }
+Process ID: 524624
+PSVersion: 7.4.6
+PSEdition: Core
+GitCommitId: 7.4.6
+OS: Microsoft Windows 10.0.19045
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
+Logging started: C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
+Checking zip status for: Dig_Dog_11162024_steam.zip
+Existing zip file count: 1
+One zip file found. Need to compare timestamps.
+No existing zip file found.
+False
+PS>$global:?
+True
+**********************
+PowerShell transcript end
+End time: 20250204141558
+**********************

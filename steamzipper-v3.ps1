@@ -38,9 +38,12 @@ param (
 # you can adjust this by appending things like 
 # * 2 or / 2 
 # to increase/decrease this 
-if (-not (Test-Path Variable:\maxJobs   )) {
-    Set-Variable -Name "maxJobs" -Value [System.Environment]::ProcessorCount -Scope Global -Option ReadOnly
+if (-not (Test-Path Variable:\maxJobsDefine   )) {
+    Set-Variable -Name "maxJobsDefine" -Value $([System.Environment]::ProcessorCount) -Scope Global -Option ReadOnly
+    #$maxJobsDefine = [int]$maxJobsDefine
+    #Write-Host "value of maxjobdefine is $maxJobsDefine"
 }
+
 
 # Define constants only if they are not already defined
 # --------------------------------------
@@ -88,7 +91,7 @@ if (-not (Test-Path Variable:\scriptfolder )) {
     # this is just setting up a variable for the current working directory the script is running from so this value
     # can be accessed by the preferences file creation folder and the start-transcription lines below
     # as well as any other instance that might need that for some reason
-    Set-Variable -Name "scriptfolder" -Value Split-Path -Parent $MyInvocation.MyCommand.Path-Scope Global -Option ReadOnly
+    Set-Variable -Name "scriptfolder" -Value (Split-Path -Parent $MyInvocation.MyCommand.Path) -Scope Global -Option ReadOnly
 }
 
 
@@ -138,6 +141,13 @@ function Get-PlatformShortName {
         return "unknown"  # Default value if no match
     }
 
+#############################################################
+# # at least as of this test (Feb 4th) this function tests valid
+# Get-PlatformShortName #(using P:\steamzipper\steam temp storage for input path) # returned "steam" successfully
+# Get-PlatformShortName #(using P:\steamzipper\gog temp storage for input path) # returned "gog" successfully
+#############################################################
+
+
 
 #################### hey, new feature! save preferences to a json file in the source folder by default ##########
 #################### obviously this comes after dealing with source/destination folders
@@ -157,8 +167,8 @@ $preferenceFile = Join-Path -Path $scriptFolder -ChildPath "steamzipper-preferen
 
 $defaultPreferences = @{
     DefaultPreferences = @{
-        PreferredDateFormat  = "MMddyyyy"
-        maxJobs             = [System.Environment]::ProcessorCount
+        PreferredDateFormat  = $PreferredDateFormat
+        maxJobs             = $maxJobsDefine
         sizeLimitKB         = 50  # No size limit by default
         CompressionExtension = ".zip"
         maxLogFiles         = 5  # Retain the last 5 log files. for start-transcript functionality.
@@ -260,7 +270,11 @@ function Get-FolderSizeKB {
     return $false
 }
 
-
+#############################################################
+# at least as of this test (11:50 Feb 4th) this function tests valid
+#Get-FolderSizeKB "P:\steamzipper\steam temp storage\cyberpunk" # folder exists but has no files (under minimum KB size)
+#Get-FolderSizeKB "P:\steamzipper\steam temp storage\PAC-MAN" # folder exists and has files (over minimum KB size)
+#############################################################
 
 function Get-FileDateStamp {
     # $FileName is either a path to a folder or the zip file name. 
@@ -305,8 +319,21 @@ if (Test-Path -Path $FileName -PathType Container) {
          }
     }  elseif  ( (!(Test-Path -Path $FileName -PathType Leaf)) -and (!( Test-Path -Path $FileName -PathType Container) ) )    {
         Write-Host "the filename parameters, $FileName, is not a folder or a file"
+        return $null
         }
 }
+
+
+#############################################################
+# at least as of this test ( Feb 4th) this function tests valid
+ #Get-FileDateStamp "P:\steamzipper\backup-steam\Horizon_Chase_11152024_steam.zip"
+ #Get-FileDateStamp "P:\steamzipper\steam temp storage\PAC-MAN"
+ #Get-FileDateStamp "10162024"
+  #Get-FileDateStamp "P:\steamzipper\steam temp storage\PACMAN"
+#############################################################
+
+
+
 
 function DetermineZipStatusDelete {
     param (
@@ -316,22 +343,86 @@ function DetermineZipStatusDelete {
         $szDestZipFileName
     )
 
+    Write-Host "Checking zip status for: $szDestZipFileName.zip"
+
+    # Check how many matching zip files exist in the destination
+    $existingZipCount = (Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*.zip" | Measure-Object).Count
+
+    Write-Host "Existing zip file count: $existingZipCount"
+
+    if ($existingZipCount -eq 0) {
+        Write-Host "No zip files found. Proceeding with compression."
+        return $true  # Zip needs to be created
+    }
+
+
+    if ($existingZipCount -eq 1) {
+        Write-Host "One zip file found. Need to compare timestamps."
+        
+        # Get existing zip file
+#        $existingZip = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*.zip" | Select-Object -First 1
+        if ($existingZip) {
+            $zipFullPath = Join-Path -Path $destinationFolder -ChildPath $existingZip.Name
+        } else {
+            Write-Host "No existing zip file found."
+            return $false
+        }
+
+
+        $zipFullPath = Join-Path -Path $destinationFolder -ChildPath $existingZip.Name
+        $zipDate = Get-FileDateStamp -FileName $zipFullPath
+        $folderDate = Get-FileDateStamp -FileName $szSrcFullGameDirPath
+
+        Write-Host "immediately after definining it, the value of zipfullpath is $zipFullPath"
+        Write-Host "immediately after definining it, the value of existingzip.name is $($existingZip.name)"
+
+        # Handle cases where the date couldn't be determined
+        if ($null -eq $zipDate) {
+            Write-Host "Error: Could not determine date for existing zip file $zipFullPath." -ForegroundColor Red
+            return $false  # Skip processing if we can't compare dates
+        }
+
+        if ($null -eq $folderDate) {
+            Write-Host "Error: Could not determine date for source folder $szSrcFullGameDirPath." -ForegroundColor Red
+            return $false  # Skip processing if we can't compare dates
+        }
+
+
+        Write-Host "Existing zip date: $zipDate"
+        Write-Host "Source folder date: $folderDate"
+
+        # Compare timestamps
+        if ($folderDate -gt $zipDate) {
+            Write-Host "Folder is newer than the zip file. Moving old zip to deleted folder."
+            
+            # Define delete path
+            $DeletePath = Join-Path -Path $destinationFolder -ChildPath "deleted"
+
+            # Ensure deleted folder exists
+            if (!(Test-Path -Path $DeletePath)) {
+                New-Item -Path $DeletePath -ItemType Directory -Force | Out-Null
+            }
+
+
+            # Move the outdated zip
+            Move-Item -Path $zipFullPath -Destination $DeletePath -Force
+            return $true
+       } else {
+           Write-Host "Zip file is up to date. Skipping compression."
+           return $false
+       }
+   }            
+
+
+    Write-Host "More than one zip file detected. Further logic needed."
+    return $false
+
+} # end DetermineZipStatusDelete function
 
 
 
-
-
-
-
-
-
-
-
-}
-
-
-
-
+DetermineZipStatusDelete "P:\steamzipper\backup-steam" Dig_Dog_11162024_steam # barely framework of function, accruately return a count of 1
+# DetermineZipStatusDelete
 
 
 
@@ -342,6 +433,6 @@ function DetermineZipStatusDelete {
 ################################################################################
 # Clean up ReadOnly variables at script end: VERY LAST STATEMENTS OF ENTIRE SCRIPT
 Remove-Variable -Name "PreferredDateFormat" -Scope Global -Force 
-Remove-Variable -Name "maxJobs" -Scope Global -Force
-Remove-Variable -Name "sizeLimitKB" -Scope Global -Force
+Remove-Variable -Name "maxJobsDefine" -Scope Global -Force
+# Remove-Variable -Name "sizeLimitKB" -Scope Global -Force # still going back and forth between json and inline/both setting of this. so disable the disabling for now
 Remove-Variable -Name "CompressionExtension" -Scope Global -Force

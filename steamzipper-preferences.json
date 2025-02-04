@@ -1,0 +1,10 @@
+{
+  "UserPreferences": {},
+  "DefaultPreferences": {
+    "sizeLimitKB": 50,
+    "CompressionExtension": ".zip",
+    "PreferredDateFormat": "MMddyyyy",
+    "maxLogFiles": 5,
+    "maxJobs": 8
+  }
+}
