@@ -1,12 +1,12 @@
 **********************
 PowerShell transcript start
-Start time: 20250204141558
+Start time: 20250204155820
 Username: GALACTICA\Keith
 RunAs User: GALACTICA\Keith
 Configuration Name: 
 Machine: GALACTICA (Microsoft Windows NT 10.0.19045.0)
 Host Application: C:\Program Files\PowerShell\7\pwsh.dll -command & { .\steamzipper-v3.ps1 "P:\steamzipper\steam temp storage_2" "P:\steamzipper\backup-steam\"  }
-Process ID: 524624
+Process ID: 537920
 PSVersion: 7.4.6
 PSEdition: Core
 GitCommitId: 7.4.6
@@ -19,14 +19,64 @@ WSManStackVersion: 3.0
 **********************
 Transcript started, output file is C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
 Logging started: C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
-Checking zip status for: Dig_Dog_11162024_steam.zip
-Existing zip file count: 1
-One zip file found. Need to compare timestamps.
-No existing zip file found.
-False
+Created zero-byte file: P:\steamzipper\steam-backup\bit_Dungeon_11012024_steam.zip
+Checking zip status for: bit_Dungeon_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: bit Dungeon ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\bit_Dungeon_II_11012024_steam.zip
+Checking zip status for: bit_Dungeon_II_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: bit Dungeon II ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\bit_Dungeon_III_11012024_steam.zip
+Checking zip status for: bit_Dungeon_III_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: bit Dungeon III ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\cyberpunk_11012024_steam.zip
+Checking zip status for: cyberpunk_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: cyberpunk ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\Dig_Dog_11092024_steam.zip
+Checking zip status for: Dig_Dog_11092024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: Dig Dog ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\doom_2016_11192024_steam.zip
+Checking zip status for: doom_2016_11192024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: doom 2016 ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\Horizon_Chase_11012024_steam.zip
+Checking zip status for: Horizon_Chase_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: Horizon Chase ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\Markov_Alg_11012024_steam.zip
+Checking zip status for: Markov_Alg_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: Markov Alg ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\Ms._PAC-MAN_11012024_steam.zip
+Checking zip status for: Ms._PAC-MAN_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: Ms. PAC-MAN ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\Outzone_11012024_steam.zip
+Checking zip status for: Outzone_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: Outzone ($zipFileNameWithDate)
+Created zero-byte file: P:\steamzipper\steam-backup\PAC-MAN_11012024_steam.zip
+Checking zip status for: PAC-MAN_11012024_steam.zip.zip
+Existing zip file count: 0
+No zip files found. Proceeding with compression.
+Zip file is warranted for: PAC-MAN ($zipFileNameWithDate)
 PS>$global:?
 True
 **********************
 PowerShell transcript end
-End time: 20250204141558
+End time: 20250204155820
 **********************
