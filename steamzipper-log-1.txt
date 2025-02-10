@@ -1,95 +1,59 @@
 **********************
 PowerShell transcript start
-Start time: 20250207144215
-Username: GALACTICA\Keith
-RunAs User: GALACTICA\Keith
+Start time: 20250209235852
+Username: THINKPEG\keith
+RunAs User: THINKPEG\keith
 Configuration Name: 
-Machine: GALACTICA (Microsoft Windows NT 10.0.19045.0)
-Host Application: C:\Program Files\PowerShell\7\pwsh.dll -command & { .\steamzipper-v3.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output"  }
-Process ID: 111332
+Machine: THINKPEG (Microsoft Windows NT 10.0.26100.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -command & { .\steamzipper-v3.ps1 "C:\Users\keith\Documents\steam temp storage" "C:\Users\keith\Documents\repos\SteamZipper\zip output"  }
+Process ID: 4852
 PSVersion: 7.5.0
 PSEdition: Core
 GitCommitId: 7.5.0
-OS: Microsoft Windows 10.0.19045
+OS: Microsoft Windows 10.0.26100
 Platform: Win32NT
 PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
 PSRemotingProtocolVersion: 2.3
 SerializationVersion: 1.1.0.1
 WSManStackVersion: 3.0
 **********************
-Transcript started, output file is C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
-Logging started: C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
-Checking zip file for: bit_Dungeon_11012024_steam.zip (Tester-Function)
-Existing zip file count: 0 (Tester-Function)
-No zip files found. Proceeding with compression. (Tester-Function)
-Created zero-byte file: P:\steamzipper\zip test output\bit_Dungeon_11012024_steam.zip (Tester-Function)
-Checking zip status for: bit_Dungeon_11012024_steam.zip
-Existing zip file count: 0 (DetermineZipStatusDelete)
-No zip files found. Proceeding with compression. (DetermineZipStatusDelete)
-Zip file is warranted for: bit Dungeon ($zipFileNameWithDate) (Tester-Function)
-Checking zip file for: bit_Dungeon_II_11012024_steam.zip (Tester-Function)
-Existing zip file count: 0 (Tester-Function)
-No zip files found. Proceeding with compression. (Tester-Function)
-Created zero-byte file: P:\steamzipper\zip test output\bit_Dungeon_II_11012024_steam.zip (Tester-Function)
-Checking zip status for: bit_Dungeon_II_11012024_steam.zip
-Existing zip file count: 0 (DetermineZipStatusDelete)
-No zip files found. Proceeding with compression. (DetermineZipStatusDelete)
-Zip file is warranted for: bit Dungeon II ($zipFileNameWithDate) (Tester-Function)
-Checking zip file for: bit_Dungeon_III_11012024_steam.zip (Tester-Function)
-Existing zip file count: 0 (Tester-Function)
-No zip files found. Proceeding with compression. (Tester-Function)
-Created zero-byte file: P:\steamzipper\zip test output\bit_Dungeon_III_11012024_steam.zip (Tester-Function)
-Checking zip status for: bit_Dungeon_III_11012024_steam.zip
-Existing zip file count: 0 (DetermineZipStatusDelete)
-No zip files found. Proceeding with compression. (DetermineZipStatusDelete)
-Zip file is warranted for: bit Dungeon III ($zipFileNameWithDate) (Tester-Function)
-Checking zip file for: cyberpunk_02062025_steam.zip (Tester-Function)
-Existing zip file count: 1 (Tester-Function)
-Zip file already exists. Skipping creation for: cyberpunk (Tester-Function)
-Checking zip file for: Dig_Dog_11092024_steam.zip (Tester-Function)
-Existing zip file count: 2 (Tester-Function)
-Zip file already exists. Skipping creation for: Dig Dog (Tester-Function)
-Checking zip file for: doom_2016_11192024_steam.zip (Tester-Function)
-Existing zip file count: 1 (Tester-Function)
-Zip file already exists. Skipping creation for: doom 2016 (Tester-Function)
-Checking zip file for: Horizon_Chase_11012024_steam.zip (Tester-Function)
-Existing zip file count: 0 (Tester-Function)
-No zip files found. Proceeding with compression. (Tester-Function)
-Created zero-byte file: P:\steamzipper\zip test output\Horizon_Chase_11012024_steam.zip (Tester-Function)
-Checking zip status for: Horizon_Chase_11012024_steam.zip
-Existing zip file count: 0 (DetermineZipStatusDelete)
-No zip files found. Proceeding with compression. (DetermineZipStatusDelete)
-Zip file is warranted for: Horizon Chase ($zipFileNameWithDate) (Tester-Function)
-Checking zip file for: Markov_Alg_11012024_steam.zip (Tester-Function)
-Existing zip file count: 0 (Tester-Function)
-No zip files found. Proceeding with compression. (Tester-Function)
-Created zero-byte file: P:\steamzipper\zip test output\Markov_Alg_11012024_steam.zip (Tester-Function)
-Checking zip status for: Markov_Alg_11012024_steam.zip
-Existing zip file count: 0 (DetermineZipStatusDelete)
-No zip files found. Proceeding with compression. (DetermineZipStatusDelete)
-Zip file is warranted for: Markov Alg ($zipFileNameWithDate) (Tester-Function)
-Checking zip file for: Ms._PAC-MAN_11012024_steam.zip (Tester-Function)
-Existing zip file count: 0 (Tester-Function)
-No zip files found. Proceeding with compression. (Tester-Function)
-Created zero-byte file: P:\steamzipper\zip test output\Ms._PAC-MAN_11012024_steam.zip (Tester-Function)
-Checking zip status for: Ms._PAC-MAN_11012024_steam.zip
-Existing zip file count: 0 (DetermineZipStatusDelete)
-No zip files found. Proceeding with compression. (DetermineZipStatusDelete)
-Zip file is warranted for: Ms. PAC-MAN ($zipFileNameWithDate) (Tester-Function)
-Checking zip file for: Outzone_11012024_steam.zip (Tester-Function)
-Existing zip file count: 0 (Tester-Function)
-No zip files found. Proceeding with compression. (Tester-Function)
-Created zero-byte file: P:\steamzipper\zip test output\Outzone_11012024_steam.zip (Tester-Function)
-Checking zip status for: Outzone_11012024_steam.zip
-Existing zip file count: 0 (DetermineZipStatusDelete)
-No zip files found. Proceeding with compression. (DetermineZipStatusDelete)
-Zip file is warranted for: Outzone ($zipFileNameWithDate) (Tester-Function)
-Checking zip file for: PAC-MAN_02062025_steam.zip (Tester-Function)
-Existing zip file count: 3 (Tester-Function)
-Zip file already exists. Skipping creation for: PAC-MAN (Tester-Function)
+Transcript started, output file is C:\Users\keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
+Logging started: C:\Users\keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
+Compression Extension: zip
+Debug: Processing source folders...
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\1BITDRAGON
+  Added: C:\Users\keith\Documents\steam temp storage\1BITDRAGON -> 11/18/2024 00:00:00
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Akka Arrh
+  Added: C:\Users\keith\Documents\steam temp storage\Akka Arrh -> 10/18/2024 00:00:00
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Andro Dunos II
+  Added: C:\Users\keith\Documents\steam temp storage\Andro Dunos II -> 10/18/2024 00:00:00
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Bitburner
+  Added: C:\Users\keith\Documents\steam temp storage\Bitburner -> 10/18/2024 00:00:00
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Doom64
+  Added: C:\Users\keith\Documents\steam temp storage\Doom64 -> 10/19/2024 00:00:00
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Hack RUN
+  Added: C:\Users\keith\Documents\steam temp storage\Hack RUN -> 10/18/2024 00:00:00
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Hyper Dungeon Crawler
+  Added: C:\Users\keith\Documents\steam temp storage\Hyper Dungeon Crawler -> 10/18/2024 00:00:00
+Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\PAC-MAN 256
+  Added: C:\Users\keith\Documents\steam temp storage\PAC-MAN 256 -> 10/19/2024 00:00:00
+
+Debug: Processing destination zips...
+  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\1BITDRAGON_11172024_steam.zip -> 11/17/2024 00:00:00
+  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\1BITDRAGON_11182024_steam.zip -> 11/18/2024 00:00:00
+  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Akka_Arrh_10182024_steam.zip -> 10/18/2024 00:00:00
+  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Andro_Dunos_II_10232024_steam.zip -> 10/23/2024 00:00:00
+  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Bitburner_10182024_steam.zip -> 10/18/2024 00:00:00
+  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Hyper_Dungeon_Crawler_10182024_steam.zip -> 10/18/2024 00:00:00
+  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\PAC-MAN_256_10192024_steam.zip -> 10/19/2024 00:00:00
+ Source Folders in Table:
+
+ Destination Zips in Table:
+
+ 'zip output' folder detected at: C:\Users\keith\Documents\repos\SteamZipper\zip output
 PS>$global:?
 True
 **********************
 PowerShell transcript end
-End time: 20250207144215
+End time: 20250209235852
 **********************

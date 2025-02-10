@@ -4,6 +4,8 @@
 # Feb 2025
 
 # pwsh -command '& { .\steamzipper-v3.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\backup-steam\" -KeepDuplicateZips }'
+# Set-ItemProperty -Path "P:\steamzipper\zip test output\testfile1.zip" -Name LastWriteTime -Value "2024-10-10T12:00:00"
+# Get-ChildItem -Path "P:\steamzipper\zip test output" | Sort-Object LastWriteTime -Descending | Select-Object Name, LastWriteTime
 
 # A perpetually grunting man-freak-beast dressed in WWII-garb semi-terrorizes the French countryside.
 # Meanwhile, a vacationing couple take shelter in an ominous, gothic chateau for the night. The elderly 
@@ -166,35 +168,35 @@ $preferenceFile = Join-Path -Path $scriptFolder -ChildPath "steamzipper-preferen
 # note: make sure these preferences match the JSON and vice-versa
 # Default preferences structure
 
-$defaultPreferences = @{
-    DefaultPreferences = @{
-        #PreferredDateFormat  = $PreferredDateFormat
-        maxJobs             = $maxJobsDefine
-        sizeLimitKB         = 50  # No size limit by default
-        #CompressionExtension = "zip"
-        maxLogFiles         = 5  # Retain the last 5 log files. for start-transcript functionality.
-    }
-    UserPreferences = @{}  # Empty for now, to be used later
-}
-
-# Check if preference file exists, load or create it
-if (Test-Path -Path $preferenceFile) {
-    try {
-        $userPreferences = Get-Content -Path $preferenceFile | ConvertFrom-Json
-        Write-Host "Loaded user preferences from $preferenceFile"
-    } catch {
-        Write-Host "Failed to read preferences file. Using defaults." -ForegroundColor Yellow
-        $userPreferences = $defaultPreferences
-    }
-} else {
-    # Save default preferences to a new JSON file
-    $defaultPreferences | ConvertTo-Json -Depth 3 | Set-Content -Path $preferenceFile
-    Write-Host "Created default preference file at: $preferenceFile"
-    $userPreferences = $defaultPreferences
-}
-
-$sizeLimitKB = $userPreferences.DefaultPreferences.sizeLimitKB
-if (-not $sizeLimitKB) { $sizeLimitKB = 50 }  # Fallback to default if not set
+#   $defaultPreferences = @{
+#       DefaultPreferences = @{
+#           #PreferredDateFormat  = $PreferredDateFormat
+#           maxJobs             = $maxJobsDefine
+#           sizeLimitKB         = 50  # No size limit by default
+#           #CompressionExtension = "zip"
+#           maxLogFiles         = 5  # Retain the last 5 log files. for start-transcript functionality.
+#       }
+#       UserPreferences = @{}  # Empty for now, to be used later
+#   }
+#   
+#   # Check if preference file exists, load or create it
+#   if (Test-Path -Path $preferenceFile) {
+#       try {
+#           $userPreferences = Get-Content -Path $preferenceFile | ConvertFrom-Json
+#           Write-Host "Loaded user preferences from $preferenceFile"
+#       } catch {
+#           Write-Host "Failed to read preferences file. Using defaults." -ForegroundColor Yellow
+#           $userPreferences = $defaultPreferences
+#       }
+#   } else {
+#       # Save default preferences to a new JSON file
+#       $defaultPreferences | ConvertTo-Json -Depth 3 | Set-Content -Path $preferenceFile
+#       Write-Host "Created default preference file at: $preferenceFile"
+#       $userPreferences = $defaultPreferences
+#   }
+#   
+#   $sizeLimitKB = $userPreferences.DefaultPreferences.sizeLimitKB
+#   if (-not $sizeLimitKB) { $sizeLimitKB = 50 }  # Fallback to default if not set
 
 #################### second new feature: 
 #################### using start transcript to record information for later review using Start-Transcript
@@ -333,165 +335,230 @@ if (Test-Path -Path $FileName -PathType Container) {
   #Get-FileDateStamp "P:\steamzipper\steam temp storage\PACMAN"
 #############################################################
 
-
-
-function DetermineZipStatusDelete {
+function Build-SourceAndDestinationTables {
     param (
-        [Parameter(Mandatory=$true)]
-        [string]$szSrcFullGameDirPath,  # Path to source subfolder, e.g., "P:\steamzipper\backup-steam\Dig Dog"
-        
-        [Parameter(Mandatory=$true)]
-        [string]$szDestZipFileName      # Zip file name without extension, e.g., "Dig_Dog_11162024_steam"
+        [string]$sourceFolder,
+        [string]$destinationFolder
     )
 
-    Write-Host "Checking zip status for: $szDestZipFileName"
-    #     Write-Host "Checking zip status for: $szDestZipFileName$CompressionExtension" # i don't think this line is necessary
+    # Initialize empty hash tables
+    #$sourceFoldersInTable = @{}
+    #$destinationZipsInTable = @{}
 
-
-    # Check how many matching zip files exist in the destination
-    #$existingZips = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*.zip"
-    $existingZips = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*$CompressionExtension"
-
-
-    $existingZipCount = $existingZips.Count
-
-    Write-Host "Existing zip file count: $existingZipCount (DetermineZipStatusDelete)"
-
-    if ($existingZipCount -eq 0) {
-        Write-Host "No zip files found. Proceeding with compression. (DetermineZipStatusDelete)"
-        return $true  # Zip needs to be created
-    }
-
-    if ($existingZipCount -eq 1) {
-        Write-Host "One zip file found. Need to compare timestamps. (DetermineZipStatusDelete)"
-        
-        # Get existing zip file
-        $existingZip = $existingZips | Select-Object -First 1
-        Write-Host "Existing zip file found: $($existingZip.Name) (DetermineZipStatusDelete)"
-        
-        # Construct the full path to the zip file
-        $zipFullPath = Join-Path -Path $destinationFolder -ChildPath $existingZip.Name
-        Write-Host "Full path to zip: $zipFullPath (DetermineZipStatusDelete)"
-        
-        # Get the date for the zip file (from the file name)
-        $zipDate = Get-FileDateStamp -FileName $zipFullPath
-        # Get the last modified date for the folder (subfolder)
-        $folderDate = Get-FileDateStamp -FileName $szSrcFullGameDirPath
-
-        # Debugging output for dates
-        Write-Host "Existing zip date: $zipDate (DetermineZipStatusDelete)" -ForegroundColor Yellow
-        Write-Host "Source folder date: $folderDate (DetermineZipStatusDelete)" -ForegroundColor Yellow
-
-        # Handle cases where date could not be determined
-        if ($null -eq $zipDate) {
-            Write-Host "Error: Could not determine date for existing zip file $zipFullPath. (DetermineZipStatusDelete)" -ForegroundColor Red
-            return $false  # Skip processing if we can't compare dates
-        }
-
-        if ($null -eq $folderDate) {
-            Write-Host "Error: Could not determine date for source folder $szSrcFullGameDirPath. (DetermineZipStatusDelete)" -ForegroundColor Red
-            return $false  # Skip processing if we can't compare dates
-        }
-        Write-Host "Comparing folder date: $folderDate with zip date: $zipDate (DetermineZipStatusDelete)" -ForegroundColor Yellow
-
-        # Compare timestamps
-        if ($folderDate -gt $zipDate) {
-            Write-Host "Folder is newer than the zip file. Moving old zip to deleted folder. (DetermineZipStatusDelete)"
-
-            # Define delete path
-            $DeletePath = Join-Path -Path $destinationFolder -ChildPath "deleted"
-            Write-Host "value of deletepath is $DeletePath (DetermineZipStatusDelete)"
-
-            # Ensure deleted folder exists
-            if (!(Test-Path -Path $DeletePath)) {
-                New-Item -Path $DeletePath -ItemType Directory -Force | Out-Null
-                Write-Host "folder of $DeletePath created successfully (DetermineZipStatusDelete)"
-            }
-
-            # Move the outdated zip
-            Move-Item -Path $zipFullPath -Destination $DeletePath -Force
-            return $true
-        } else {
-            Write-Host "Zip file is up to date. Skipping compression. (DetermineZipStatusDelete)"
-            return $false
-        }
-    }
-
-    Write-Host "More than one zip file detected. Further logic needed. (DetermineZipStatusDelete)"
-    return $false
-}
-
-
-
-
-# prior to attempt to handle multiple zip matches, this test was working as far as i can tell
-#DetermineZipStatusDelete "P:\steamzipper\steam temp storage_2\Dig Dog" Dig_Dog_11162024_steam # barely framework of function, accruately return a count of 1
-
-#DetermineZipStatusDelete "P:\steamzipper\steam temp storage_2\Dig Dog" Dig_Dog_11162024_steam 
-
-#P:\steamzipper\steam-backup
-# DetermineZipStatusDelete
-
-function Tester-Function {
-    param (
-        [string]$sourceFolder,        # Source folder path
-        [string]$destinationFolder    # Destination folder for the zip files
-    )
-
-    # Loop through each subfolder in the source folder
+    Write-Host "Debug: Processing source folders..." -ForegroundColor Cyan
+    $sourceFoldersInTable = @{}
     Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
-        $subFolderName = $_.Name  # Subfolder name
+    $sourceFoldersInTable[$_.FullName] = Get-FileDateStamp $_.FullName
+    Write-Host "  Added: $($_.FullName) -> $($sourceFoldersInTable[$_.FullName])"
+}
 
-        # Generate zip file name: replace spaces with underscores
-        $zipFileName = $subFolderName -replace ' ', '_'
-        
-        # Get the date of the subfolder and convert it to MMddyyyy format
-        $folderDate = (Get-Item $_.FullName).LastWriteTime.ToString($PreferredDateFormat)
-
-        # Get the platform from the path (example logic for platform)
-        $platform = Get-PlatformShortName  # Assuming you already have this function defined
-
-        # Construct the full zip file name (e.g., Dig_Dog_10042024_steam.zip)
-        $zipFileNameWithDate = "$zipFileName" + "_" + "$folderDate" + "_$platform" + ".$CompressionExtension"
-
-
-        # Construct the full path for the zip file in the destination folder
-        $zipFilePath = Join-Path -Path $destinationFolder -ChildPath $zipFileNameWithDate
-
-        # Log the generated zip file name for debugging
-        Write-Host "Checking zip file for: $zipFileNameWithDate (Tester-Function)"
-
-        # Check for existing zip files in the destination folder
-        $existingZips = Get-ChildItem -Path $destinationFolder -Filter "$zipFileName*$CompressionExtension"
-        $existingZipCount = $existingZips.Count
-
-        Write-Host "Existing zip file count: $existingZipCount (Tester-Function)"
-
-        if ($existingZipCount -eq 0) {
-            Write-Host "No zip files found. Proceeding with compression. (Tester-Function)"
-            
-            # Simulate a zero-byte zip file creation for testing purposes
-            New-Item -Path $zipFilePath -ItemType File -Force | Out-Null
-            Write-Host "Created zero-byte file: $zipFilePath (Tester-Function)"
-            
-            $zipStatus = DetermineZipStatusDelete -szSrcFullGameDirPath $_.FullName -szDestZipFileName $zipFileNameWithDate
-
-            if ($zipStatus) {
-                Write-Host "Zip file is warranted for: $subFolderName (`$zipFileNameWithDate`) (Tester-Function)" -ForegroundColor Green
-            } else {
-                Write-Host "No zip needed for: $subFolderName (`$zipFileNameWithDate`) (Tester-Function)" -ForegroundColor Yellow
-            }
-        } else {
-            Write-Host "Zip file already exists. Skipping creation for: $subFolderName (Tester-Function)"
-        }
+Write-Host "`nDebug: Processing destination zips..." -ForegroundColor Green
+$destinationZipsInTable = @{}
+Get-ChildItem -Path $destinationFolder -Filter "*.$CompressionExtension" | ForEach-Object {
+    $zipNameParts = $_.BaseName -split "_"
+    $dateCode = $zipNameParts[-2]
+    
+    if ($dateCode -match "^\d{8}$") {
+        $destinationZipsInTable[$_.FullName] = Get-FileDateStamp $dateCode
+        Write-Host "  Added: $($_.FullName) -> $($destinationZipsInTable[$_.FullName])"
+    } else {
+        Write-Host "  Skipped (invalid date format): $($_.FullName)" -ForegroundColor Yellow
+    }
+}
+    return @{
+        SourceFoldersInTable   = $sourceFoldersInTable
+        DestinationZipsInTable = $destinationZipsInTable
     }
 }
 
 
-#Tester-Function -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\steam-backup"
+Write-Host "Compression Extension: $CompressionExtension"
+
+# Build the tables
+$tables = Build-SourceAndDestinationTables -sourceFolder $sourceFolder -destinationFolder $destinationFolder
+
+# Assign table results
+$sourceFoldersInTable = $tables.SourceFolders
+$destinationZipsInTable = $tables.DestinationZips
+
+# Debug Output
+Write-Host " Source Folders in Table:" -ForegroundColor Cyan
+foreach ($key in $sourceFoldersInTable.Keys) {
+    Write-Host "  - $key => $($sourceFoldersInTable[$key])"
+}
+
+Write-Host "`n Destination Zips in Table:" -ForegroundColor Green
+foreach ($key in $destinationZipsInTable.Keys) {
+    Write-Host "  - $key => $($destinationZipsInTable[$key])"
+}
+
+# Verify "zip output" exists
+$zipOutputFolder = Join-Path -Path $scriptfolder -ChildPath "zip output"
+if (-not (Test-Path $zipOutputFolder)) {
+    Write-Host "`n  Warning: 'zip output' folder does not exist!" -ForegroundColor Yellow
+} else {
+    Write-Host "`n 'zip output' folder detected at: $zipOutputFolder" -ForegroundColor Green
+}
+
+
+
+#function DetermineZipStatusDelete {
+#    param (
+#        [Parameter(Mandatory=$true)]
+#        [string]$szSrcFullGameDirPath,  # Path to source subfolder, e.g., "P:\steamzipper\backup-steam\Dig Dog"
+#        
+#        [Parameter(Mandatory=$true)]
+#        [string]$szDestZipFileName      # Zip file name without extension, e.g., "Dig_Dog_11162024_steam"
+#    )
+#
+#    Write-Host "Checking zip status for: $szDestZipFileName"
+#    #     Write-Host "Checking zip status for: $szDestZipFileName$CompressionExtension" # i don't think this line is necessary
+#
+#
+#    # Check how many matching zip files exist in the destination
+#    #$existingZips = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*.zip"
+#    $existingZips = Get-ChildItem -Path $destinationFolder -Filter "$szDestZipFileName*$CompressionExtension"
+#
+#
+#    $existingZipCount = $existingZips.Count
+#
+#    Write-Host "Existing zip file count: $existingZipCount (DetermineZipStatusDelete)"
+#
+#    if ($existingZipCount -eq 0) {
+#        Write-Host "No zip files found. Proceeding with compression. (DetermineZipStatusDelete)"
+#        return $true  # Zip needs to be created
+#    }
+#
+#    if ($existingZipCount -eq 1) {
+#        Write-Host "One zip file found. Need to compare timestamps. (DetermineZipStatusDelete)"
+#        
+#        # Get existing zip file
+#        $existingZip = $existingZips | Select-Object -First 1
+#        Write-Host "Existing zip file found: $($existingZip.Name) (DetermineZipStatusDelete)"
+#        
+#        # Construct the full path to the zip file
+#        $zipFullPath = Join-Path -Path $destinationFolder -ChildPath $existingZip.Name
+#        Write-Host "Full path to zip: $zipFullPath (DetermineZipStatusDelete)"
+#        
+#        # Get the date for the zip file (from the file name)
+#        $zipDate = Get-FileDateStamp -FileName $zipFullPath
+#        # Get the last modified date for the folder (subfolder)
+#        $folderDate = Get-FileDateStamp -FileName $szSrcFullGameDirPath
+#
+#        # Debugging output for dates
+#        Write-Host "Existing zip date: $zipDate (DetermineZipStatusDelete)" -ForegroundColor Yellow
+#        Write-Host "Source folder date: $folderDate (DetermineZipStatusDelete)" -ForegroundColor Yellow
+#
+#        # Handle cases where date could not be determined
+#        if ($null -eq $zipDate) {
+#            Write-Host "Error: Could not determine date for existing zip file $zipFullPath. (DetermineZipStatusDelete)" -ForegroundColor Red
+#            return $false  # Skip processing if we can't compare dates
+#        }
+#
+#        if ($null -eq $folderDate) {
+#            Write-Host "Error: Could not determine date for source folder $szSrcFullGameDirPath. (DetermineZipStatusDelete)" -ForegroundColor Red
+#            return $false  # Skip processing if we can't compare dates
+#        }
+#        Write-Host "Comparing folder date: $folderDate with zip date: $zipDate (DetermineZipStatusDelete)" -ForegroundColor Yellow
+#
+#        # Compare timestamps
+#        if ($folderDate -gt $zipDate) {
+#            Write-Host "Folder is newer than the zip file. Moving old zip to deleted folder. (DetermineZipStatusDelete)"
+#
+#            # Define delete path
+#            $DeletePath = Join-Path -Path $destinationFolder -ChildPath "deleted"
+#            Write-Host "value of deletepath is $DeletePath (DetermineZipStatusDelete)"
+#
+#            # Ensure deleted folder exists
+#            if (!(Test-Path -Path $DeletePath)) {
+#                New-Item -Path $DeletePath -ItemType Directory -Force | Out-Null
+#                Write-Host "folder of $DeletePath created successfully (DetermineZipStatusDelete)"
+#            }
+#
+#            # Move the outdated zip
+#            Move-Item -Path $zipFullPath -Destination $DeletePath -Force
+#            return $true
+#        } else {
+#            Write-Host "Zip file is up to date. Skipping compression. (DetermineZipStatusDelete)"
+#            return $false
+#        }
+#    }
+#
+#    Write-Host "More than one zip file detected. Further logic needed. (DetermineZipStatusDelete)"
+#    return $false
+#}
+#
+#
+#
+#
+## prior to attempt to handle multiple zip matches, this test was working as far as i can tell
+##DetermineZipStatusDelete "P:\steamzipper\steam temp storage_2\Dig Dog" Dig_Dog_11162024_steam # barely framework of function, accruately return a count of 1
+#
+##DetermineZipStatusDelete "P:\steamzipper\steam temp storage_2\Dig Dog" Dig_Dog_11162024_steam 
+#
+##P:\steamzipper\steam-backup
+## DetermineZipStatusDelete
+#
+#function Tester-Function {
+#    param (
+#        [string]$sourceFolder,        # Source folder path
+#        [string]$destinationFolder    # Destination folder for the zip files
+#    )
+#
+#    # Loop through each subfolder in the source folder
+#    Get-ChildItem -Path $sourceFolder -Directory | ForEach-Object {
+#        $subFolderName = $_.Name  # Subfolder name
+#
+#        # Generate zip file name: replace spaces with underscores
+#        $zipFileName = $subFolderName -replace ' ', '_'
+#        
+#        # Get the date of the subfolder and convert it to MMddyyyy format
+#        $folderDate = (Get-Item $_.FullName).LastWriteTime.ToString($PreferredDateFormat)
+#
+#        # Get the platform from the path (example logic for platform)
+#        $platform = Get-PlatformShortName  # Assuming you already have this function defined
+#
+#        # Construct the full zip file name (e.g., Dig_Dog_10042024_steam.zip)
+#        $zipFileNameWithDate = "$zipFileName" + "_" + "$folderDate" + "_$platform" + ".$CompressionExtension"
+#
+#
+#        # Construct the full path for the zip file in the destination folder
+#        $zipFilePath = Join-Path -Path $destinationFolder -ChildPath $zipFileNameWithDate
+#
+#        # Log the generated zip file name for debugging
+#        Write-Host "Checking zip file for: $zipFileNameWithDate (Tester-Function)"
+#
+#        # Check for existing zip files in the destination folder
+#        $existingZips = Get-ChildItem -Path $destinationFolder -Filter "$zipFileName*$CompressionExtension"
+#        $existingZipCount = $existingZips.Count
+#
+#        Write-Host "Existing zip file count: $existingZipCount (Tester-Function)"
+#
+#        if ($existingZipCount -eq 0) {
+#            Write-Host "No zip files found. Proceeding with compression. (Tester-Function)"
+#            
+#            # Simulate a zero-byte zip file creation for testing purposes
+#            New-Item -Path $zipFilePath -ItemType File -Force | Out-Null
+#            Write-Host "Created zero-byte file: $zipFilePath (Tester-Function)"
+#            
+#            $zipStatus = DetermineZipStatusDelete -szSrcFullGameDirPath $_.FullName -szDestZipFileName $zipFileNameWithDate
+#
+#            if ($zipStatus) {
+#                Write-Host "Zip file is warranted for: $subFolderName (`$zipFileNameWithDate`) (Tester-Function)" -ForegroundColor Green
+#            } else {
+#                Write-Host "No zip needed for: $subFolderName (`$zipFileNameWithDate`) (Tester-Function)" -ForegroundColor Yellow
+#            }
+#        } else {
+#            Write-Host "Zip file already exists. Skipping creation for: $subFolderName (Tester-Function)"
+#        }
+#    }
+#}
+#
+#
+##Tester-Function -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\steam-backup"
+##Tester-Function -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output"
+##Tester-Function -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output"
 #Tester-Function -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output"
-#Tester-Function -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output"
-Tester-Function -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output"
 
 
 
