@@ -1,59 +1,176 @@
 **********************
 PowerShell transcript start
-Start time: 20250209235852
-Username: THINKPEG\keith
-RunAs User: THINKPEG\keith
+Start time: 20250214153123
+Username: GALACTICA\Keith
+RunAs User: GALACTICA\Keith
 Configuration Name: 
-Machine: THINKPEG (Microsoft Windows NT 10.0.26100.0)
-Host Application: C:\Program Files\PowerShell\7\pwsh.dll -command & { .\steamzipper-v3.ps1 "C:\Users\keith\Documents\steam temp storage" "C:\Users\keith\Documents\repos\SteamZipper\zip output"  }
-Process ID: 4852
+Machine: GALACTICA (Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -command & { .\steamzipper-v3.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output"  }
+Process ID: 92716
 PSVersion: 7.5.0
 PSEdition: Core
 GitCommitId: 7.5.0
-OS: Microsoft Windows 10.0.26100
+OS: Microsoft Windows 10.0.19045
 Platform: Win32NT
 PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
 PSRemotingProtocolVersion: 2.3
 SerializationVersion: 1.1.0.1
 WSManStackVersion: 3.0
 **********************
-Transcript started, output file is C:\Users\keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
-Logging started: C:\Users\keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
+Transcript started, output file is C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
+Logging started: C:\Users\Keith\Documents\repos\SteamZipper\steamzipper-log-1.txt
 Compression Extension: zip
-Debug: Processing source folders...
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\1BITDRAGON
-  Added: C:\Users\keith\Documents\steam temp storage\1BITDRAGON -> 11/18/2024 00:00:00
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Akka Arrh
-  Added: C:\Users\keith\Documents\steam temp storage\Akka Arrh -> 10/18/2024 00:00:00
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Andro Dunos II
-  Added: C:\Users\keith\Documents\steam temp storage\Andro Dunos II -> 10/18/2024 00:00:00
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Bitburner
-  Added: C:\Users\keith\Documents\steam temp storage\Bitburner -> 10/18/2024 00:00:00
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Doom64
-  Added: C:\Users\keith\Documents\steam temp storage\Doom64 -> 10/19/2024 00:00:00
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Hack RUN
-  Added: C:\Users\keith\Documents\steam temp storage\Hack RUN -> 10/18/2024 00:00:00
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\Hyper Dungeon Crawler
-  Added: C:\Users\keith\Documents\steam temp storage\Hyper Dungeon Crawler -> 10/18/2024 00:00:00
-Inside get-filedatestamp, the filename parameter is C:\Users\keith\Documents\steam temp storage\PAC-MAN 256
-  Added: C:\Users\keith\Documents\steam temp storage\PAC-MAN 256 -> 10/19/2024 00:00:00
-
-Debug: Processing destination zips...
-  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\1BITDRAGON_11172024_steam.zip -> 11/17/2024 00:00:00
-  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\1BITDRAGON_11182024_steam.zip -> 11/18/2024 00:00:00
-  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Akka_Arrh_10182024_steam.zip -> 10/18/2024 00:00:00
-  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Andro_Dunos_II_10232024_steam.zip -> 10/23/2024 00:00:00
-  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Bitburner_10182024_steam.zip -> 10/18/2024 00:00:00
-  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\Hyper_Dungeon_Crawler_10182024_steam.zip -> 10/18/2024 00:00:00
-  Added: C:\Users\keith\Documents\repos\SteamZipper\zip output\PAC-MAN_256_10192024_steam.zip -> 10/19/2024 00:00:00
  Source Folders in Table:
 
  Destination Zips in Table:
 
- 'zip output' folder detected at: C:\Users\keith\Documents\repos\SteamZipper\zip output
+  Warning: 'zip test output' folder does not exist!
+Debug: Processing source folders...
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\bit Dungeon
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\bit Dungeon II
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\bit Dungeon III
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\cyberpunk
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Dig Dog
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\doom 2016
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Horizon Chase
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Markov Alg
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Ms. PAC-MAN
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Outzone
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\PAC-MAN
+
+Final Source Folders Table (Count: 11):
+  P:\steamzipper\steam temp storage\cyberpunk -> 02/06/2025 00:00:00
+  P:\steamzipper\steam temp storage\bit Dungeon II -> 11/01/2024 00:00:00
+  P:\steamzipper\steam temp storage\Horizon Chase -> 11/01/2024 00:00:00
+  P:\steamzipper\steam temp storage\Ms. PAC-MAN -> 11/01/2024 00:00:00
+  P:\steamzipper\steam temp storage\bit Dungeon -> 11/01/2024 00:00:00
+  P:\steamzipper\steam temp storage\PAC-MAN -> 02/06/2025 00:00:00
+  P:\steamzipper\steam temp storage\doom 2016 -> 11/19/2024 00:00:00
+  P:\steamzipper\steam temp storage\bit Dungeon III -> 11/01/2024 00:00:00
+  P:\steamzipper\steam temp storage\Dig Dog -> 11/09/2024 00:00:00
+  P:\steamzipper\steam temp storage\Markov Alg -> 11/01/2024 00:00:00
+  P:\steamzipper\steam temp storage\Outzone -> 11/01/2024 00:00:00
+
+Debug: Processing destination zips...
+
+Final Destination Zips Table (Count: 14):
+  P:\steamzipper\zip test output\bit_Dungeon_II_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\Dig_Dog_01092025_steam.zip -> 01/09/2025 00:00:00
+  P:\steamzipper\zip test output\Markov_Alg_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\PAC-MAN_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\Horizon_Chase_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\Ms._PAC-MAN_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\Outzone_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\bit_Dungeon_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\doom_2016_11192024_steam.zip -> 11/19/2024 00:00:00
+  P:\steamzipper\zip test output\cyberpunk_12202024_steam.zip -> 12/20/2024 00:00:00
+  P:\steamzipper\zip test output\PAC-MAN_11152024_steam.zip -> 11/15/2024 00:00:00
+  P:\steamzipper\zip test output\PAC-MAN_11052024_steam.zip -> 11/05/2024 00:00:00
+  P:\steamzipper\zip test output\bit_Dungeon_III_11012024_steam.zip -> 11/01/2024 00:00:00
+  P:\steamzipper\zip test output\Dig_Dog_11092024_steam.zip -> 11/09/2024 00:00:00
+Debug: Processing source folders...
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\bit Dungeon
+  Added: P:\steamzipper\steam temp storage\bit Dungeon -> 11/01/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\bit Dungeon II
+  Added: P:\steamzipper\steam temp storage\bit Dungeon II -> 11/01/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\bit Dungeon III
+  Added: P:\steamzipper\steam temp storage\bit Dungeon III -> 11/01/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\cyberpunk
+  Added: P:\steamzipper\steam temp storage\cyberpunk -> 02/06/2025 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Dig Dog
+  Added: P:\steamzipper\steam temp storage\Dig Dog -> 11/09/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\doom 2016
+  Added: P:\steamzipper\steam temp storage\doom 2016 -> 11/19/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Horizon Chase
+  Added: P:\steamzipper\steam temp storage\Horizon Chase -> 11/01/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Markov Alg
+  Added: P:\steamzipper\steam temp storage\Markov Alg -> 11/01/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Ms. PAC-MAN
+  Added: P:\steamzipper\steam temp storage\Ms. PAC-MAN -> 11/01/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\Outzone
+  Added: P:\steamzipper\steam temp storage\Outzone -> 11/01/2024 00:00:00
+Inside Get-FileDateStamp, processing: P:\steamzipper\steam temp storage\PAC-MAN
+  Added: P:\steamzipper\steam temp storage\PAC-MAN -> 02/06/2025 00:00:00
+
+Debug: Processing destination zips...
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\bit_Dungeon_11012024_steam.zip ->
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\bit_Dungeon_II_11012024_steam.zip ->
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\bit_Dungeon_III_11012024_steam.zip ->
+Error: 12202024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\cyberpunk_12202024_steam.zip ->
+Error: 01092025 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\Dig_Dog_01092025_steam.zip ->
+Error: 11092024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\Dig_Dog_11092024_steam.zip ->
+Error: 11192024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\doom_2016_11192024_steam.zip ->
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\Horizon_Chase_11012024_steam.zip ->
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\Markov_Alg_11012024_steam.zip ->
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\Ms._PAC-MAN_11012024_steam.zip ->
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\Outzone_11012024_steam.zip ->
+Error: 11012024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\PAC-MAN_11012024_steam.zip ->
+Error: 11052024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\PAC-MAN_11052024_steam.zip ->
+Error: 11152024 is not a valid file or folder
+  Added: P:\steamzipper\zip test output\PAC-MAN_11152024_steam.zip ->
+
+Checking: cyberpunk (Last Modified: 02/06/2025 00:00:00)
+  → Latest zip: cyberpunk_12202024_steam.zip (Date: )
+  → Outdated zip found. Needs update.
+update
+
+Checking: bit Dungeon II (Last Modified: 11/01/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: Horizon Chase (Last Modified: 11/01/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: Ms. PAC-MAN (Last Modified: 11/01/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: bit Dungeon (Last Modified: 11/01/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: PAC-MAN (Last Modified: 02/06/2025 00:00:00)
+  → Latest zip: PAC-MAN_11012024_steam.zip (Date: )
+  → Outdated zip found. Needs update.
+update
+
+Checking: doom 2016 (Last Modified: 11/19/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: bit Dungeon III (Last Modified: 11/01/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: Dig Dog (Last Modified: 11/09/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: Markov Alg (Last Modified: 11/01/2024 00:00:00)
+  → No existing zip found. Needs new zip.
+new
+
+Checking: Outzone (Last Modified: 11/01/2024 00:00:00)
+  → Latest zip: Outzone_11012024_steam.zip (Date: )
+  → Outdated zip found. Needs update.
+update
 PS>$global:?
 True
 **********************
 PowerShell transcript end
-End time: 20250209235852
+End time: 20250214153124
 **********************

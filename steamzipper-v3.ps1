@@ -142,7 +142,7 @@ function Get-PlatformShortName {
             }
         }
         return "unknown"  # Default value if no match
-    }
+}
 
 #############################################################
 # # at least as of this test (Feb 4th) this function tests valid
@@ -375,7 +375,7 @@ Get-ChildItem -Path $destinationFolder -Filter "*.$CompressionExtension" | ForEa
 Write-Host "Compression Extension: $CompressionExtension"
 
 # Build the tables
-$tables = Build-SourceAndDestinationTables -sourceFolder $sourceFolder -destinationFolder $destinationFolder
+#$tables = Build-SourceAndDestinationTables -sourceFolder $sourceFolder -destinationFolder $destinationFolder
 
 # Assign table results
 $sourceFoldersInTable = $tables.SourceFolders
@@ -393,11 +393,64 @@ foreach ($key in $destinationZipsInTable.Keys) {
 }
 
 # Verify "zip output" exists
-$zipOutputFolder = Join-Path -Path $scriptfolder -ChildPath "zip output"
+$zipOutputFolder = Join-Path -Path $scriptfolder -ChildPath "zip test output"
 if (-not (Test-Path $zipOutputFolder)) {
-    Write-Host "`n  Warning: 'zip output' folder does not exist!" -ForegroundColor Yellow
+    Write-Host "`n  Warning: 'zip test output' folder does not exist!" -ForegroundColor Yellow
 } else {
-    Write-Host "`n 'zip output' folder detected at: $zipOutputFolder" -ForegroundColor Green
+    Write-Host "`n 'zip test output' folder detected at: $zipOutputFolder" -ForegroundColor Green
+}
+
+
+function Determine-ZipStatus {
+    param (
+        [string]$sourceFolderPath,
+        [hashtable]$sourceFoldersMap,
+        [hashtable]$destinationZipsMap
+    )
+
+    # Extract the folder name from the full path
+    $folderName = Split-Path -Leaf $sourceFolderPath
+    $sourceDate = $sourceFoldersMap[$sourceFolderPath]
+
+    Write-Host "`nChecking: $folderName (Last Modified: $sourceDate)"
+
+    # Find matching zips
+    $matchingZips = $destinationZipsMap.GetEnumerator() | Where-Object {
+        $_.Key -like "*$folderName*"
+    }
+
+    if ($matchingZips.Count -eq 0) {
+        Write-Host "  → No existing zip found. Needs new zip." -ForegroundColor Yellow
+        return "new"
+    }
+
+    # Sort existing zips by date (newest first)
+    $matchingZips = $matchingZips | Sort-Object Value -Descending
+    $latestZip = $matchingZips[0]
+    $latestZipDate = $latestZip.Value
+
+    Write-Host "  → Latest zip: $(Split-Path -Leaf $latestZip.Key) (Date: $latestZipDate)"
+
+    if ($latestZipDate -lt $sourceDate) {
+        Write-Host "  → Outdated zip found. Needs update." -ForegroundColor Red
+        return "update"
+    }
+
+    Write-Host "  → Zip is up-to-date. No action needed." -ForegroundColor Green
+    return "skip"
+}
+
+
+# Call the function to build tables
+$tables = Build-SourceAndDestinationTables -sourceFolder $sourceFolder -destinationFolder $destinationFolder
+
+# Extract the hashtables from the returned object
+$sourceFoldersMap = $tables.SourceFoldersInTable
+$destinationZipsMap = $tables.DestinationZipsInTable
+
+# Loop through each source folder and determine zip status
+foreach ($folder in $sourceFoldersMap.Keys) {
+    Determine-ZipStatus -sourceFolderPath $folder -sourceFoldersMap $sourceFoldersMap -destinationZipsMap $destinationZipsMap
 }
 
 
