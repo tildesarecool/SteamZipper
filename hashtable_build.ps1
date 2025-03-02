@@ -1,8 +1,11 @@
+#pwsh -command '& { .\hashtable_build.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode }'
+
 param (
     [Parameter(Mandatory=$true)]
     [string]$sourceFolder,      # Source folder with subfolders
     [Parameter(Mandatory=$true)]
-    [string]$destinationFolder  # Destination folder with files
+    [string]$destinationFolder, # Destination folder with files
+    [switch]$debugMode          # Optional debug flag to toggle verbose output
 )
 
 # Define immutable global variables
@@ -52,7 +55,7 @@ function Get-SortedSubfolders {
     $subfolders = Get-ChildItem -Path $folderPath -Directory | 
                   Select-Object Name, LastWriteTime | 
                   Sort-Object LastWriteTime
-    Write-Host "Found $($subfolders.Count) subfolders in $folderPath"
+    if ($debugMode) { Write-Host "Found $($subfolders.Count) subfolders in $folderPath" }
     return $subfolders
 }
 
@@ -76,7 +79,7 @@ function Get-SortedFiles {
                  }
              } | Where-Object { $_ -ne $null } |
              Sort-Object LastWriteTime
-    Write-Host "Found $($files.Count) valid files in $folderPath"
+    if ($debugMode) { Write-Host "Found $($files.Count) valid files in $folderPath" }
     return $files
 }
 
@@ -140,7 +143,7 @@ function Build-InitializationTable {
             "File Last Write Date" = if ($i -lt $files.Count) { $files[$i].LastWriteTime } else { "" }
         }
     }
-    Write-Host "Built initialization table with $maxCount entries"
+    if ($debugMode) { Write-Host "Built initialization table with $maxCount entries" }
     return $hashTable
 }
 
@@ -163,7 +166,7 @@ function Build-FirstRefinedTable {
 
         # Skip if folder is empty (below size limit)
         if ($folderSizeKB -lt $global:sizeLimitKB) {
-            Write-Host "Skipping empty subfolder: $($subfolder.'Subfolder Name') (Size: $folderSizeKB KB)"
+            if ($debugMode) { Write-Host "Skipping empty subfolder: $($subfolder.'Subfolder Name') (Size: $folderSizeKB KB)" }
             continue
         }
 
@@ -182,10 +185,84 @@ function Build-FirstRefinedTable {
             "Zip File Name" = if ($matchingZip) { $matchingZip."File Name" } else { $expectedZip }
         }
     }
-    Write-Host "Built first refined table with $($refinedTable.Count) entries"
+    if ($debugMode) { Write-Host "Built first refined table with $($refinedTable.Count) entries" }
     return $refinedTable
 }
 
+function Build-ZipDecisionTable {
+    param (
+        [Parameter(Mandatory=$true)]
+        $refinedTable
+    )
+    $platform = Get-PlatformShortName
+    $decisionTable = @()
+    $deletedFolder = Join-Path -Path $destinationFolder -ChildPath "deleted"
+
+    # Create deleted folder if it doesn't exist (only in debug mode)
+    if ($debugMode -and -not (Test-Path -Path $deletedFolder -PathType Container)) {
+        try {
+            New-Item -Path $deletedFolder -ItemType Directory -ErrorAction Stop | Out-Null
+            Write-Host "Created deleted folder: $deletedFolder"
+        }
+        catch {
+            Write-Host "Failed to create deleted folder: $deletedFolder" -ForegroundColor Red
+            Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+
+    foreach ($entry in $refinedTable) {
+        $subfolderName = $entry."Subfolder Name" -replace " ", "_"
+        $dateCode = $entry."Folder Last Write Date".ToString($global:PreferredDateFormat)
+        $expectedZip = "${subfolderName}_${dateCode}_${platform}.$global:CompressionExtension"
+        $expectedZipPath = Join-Path -Path $destinationFolder -ChildPath $expectedZip
+
+        # Check if the zip name is hypothetical (no real zip exists)
+        if ($entry."Zip File Name" -eq $expectedZip) {
+            $status = "NeedsZip"
+            if ($debugMode) { 
+                Write-Host "Subfolder $($entry.'Subfolder Name') has no existing zip, marked as NeedsZip"
+                # Create stub zip file
+                New-Item -Path $expectedZipPath -ItemType File -Force | Out-Null
+                Write-Host "Created stub zip: $expectedZipPath (0 KB)"
+            }
+        } else {
+            # Parse the date from the existing zip filename
+            $parts = $entry."Zip File Name" -split "_"
+            $existingDate = [datetime]::ParseExact($parts[-2], $global:PreferredDateFormat, $null)
+            $existingZipPath = Join-Path -Path $destinationFolder -ChildPath $entry."Zip File Name"
+
+            # Compare dates
+            if ($existingDate -lt $entry."Folder Last Write Date") {
+                $status = "NeedsUpdate"
+                if ($debugMode) { 
+                    Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is older than folder, marked as NeedsUpdate"
+                    # Move old zip to deleted folder
+                    if (Test-Path -Path $existingZipPath) {
+                        $deletedZipPath = Join-Path -Path $deletedFolder -ChildPath $entry."Zip File Name"
+                        Move-Item -Path $existingZipPath -Destination $deletedZipPath -Force
+                        Write-Host "Moved old zip to: $deletedZipPath"
+                    }
+                    # Create stub zip file
+                    New-Item -Path $expectedZipPath -ItemType File -Force | Out-Null
+                    Write-Host "Created stub zip: $expectedZipPath (0 KB)"
+                }
+            } else {
+                $status = "NoAction"
+                if ($debugMode) { Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is current or newer, marked as NoAction" }
+            }
+        }
+
+        $decisionTable += [PSCustomObject]@{
+            "Subfolder Name" = $entry."Subfolder Name"
+            "Folder Last Write Date" = $entry."Folder Last Write Date"
+            "Existing Zip Name" = if ($entry."Zip File Name" -ne $expectedZip) { $entry."Zip File Name" } else { "" }
+            "Expected Zip Name" = $expectedZip
+            "Status" = $status
+        }
+    }
+    if ($debugMode) { Write-Host "Built zip decision table with $($decisionTable.Count) entries" }
+    return $decisionTable
+}
 # Main execution function
 function main {
     Validate-ScriptParameters
@@ -198,16 +275,25 @@ function main {
 
     $global:FirstRefinedTable = Build-FirstRefinedTable -initTable $global:InitializationTable
     if ($null -eq $global:FirstRefinedTable) {
-        Throw "Failed to build FirstRefinedTable - no data returned"
+        Throw "Failed to build FirstRefinedTable -no data returned"
     }
     Set-Variable -Name "FirstRefinedTable" -Value $global:FirstRefinedTable -Scope Global -Option ReadOnly
 
-    # For debugging
-    Write-Host "Initialization Table:"
-    $global:InitializationTable | Format-Table -AutoSize
-    Write-Host "First Refined Table:"
-    $global:FirstRefinedTable | Format-Table -AutoSize
-}
+    $global:ZipDecisionTable = Build-ZipDecisionTable -refinedTable $global:FirstRefinedTable
+    if ($null -eq $global:ZipDecisionTable) {
+        Throw "Failed to build ZipDecisionTable - no data returned"
+    }
+    Set-Variable -Name "ZipDecisionTable" -Value $global:ZipDecisionTable -Scope Global -Option ReadOnly
 
+    # Debug output only if -debugMode is specified
+    if ($debugMode) {
+        Write-Host "Initialization Table:"
+        $global:InitializationTable | Format-Table -AutoSize
+        Write-Host "First Refined Table:"
+        $global:FirstRefinedTable | Format-Table -AutoSize
+        Write-Host "Zip Decision Table:"
+        $global:ZipDecisionTable | Format-Table -AutoSize
+    }
+}
 # Execute the script
 main
