@@ -5,8 +5,11 @@ param (
     [string]$sourceFolder,      # Source folder with subfolders
     [Parameter(Mandatory=$true)]
     [string]$destinationFolder, # Destination folder with files
-    [switch]$debugMode          # Optional debug flag to toggle verbose output
+    [switch]$debugMode,          # Optional debug flag to toggle verbose output
+    [switch]$keepDuplicates     # Optional flag to keep duplicate zips (default: remove them)
 )
+
+
 
 # Define immutable global variables
 if (-not (Test-Path Variable:\maxJobsDefine)) {
@@ -35,6 +38,7 @@ function Validate-ScriptParameters {
         Write-Error -Message "Error: Source folder '$sourceFolder' not found, exiting..."
         exit 1
     }
+
 
     if (-not (Test-Path -Path $destinationFolder -PathType Container)) {
         try {
@@ -113,25 +117,12 @@ function Get-PlatformShortName {
 }
 
 # Build raw initialization table
+
 function Build-InitializationTable {
     $subfolders = Get-ChildItem -Path $sourceFolder -Directory | 
                   Select-Object Name, LastWriteTime
     $files = Get-ChildItem -Path $destinationFolder -File -Filter "*.zip" | 
-             ForEach-Object {
-                 $parts = $_.Name -split "_"
-                 try {
-                     if ($parts.Count -ge 3 -and ($date = [datetime]::ParseExact($parts[-2], $global:PreferredDateFormat, $null))) {
-                         [PSCustomObject]@{
-                             Name = $_.Name
-                             LastWriteTime = $date
-                         }
-                     } else {
-                         $null
-                     }
-                 } catch {
-                     $null
-                 }
-             } | Where-Object { $_ -ne $null }
+             Select-Object Name  # Only need the filename
     
     $hashTable = @()
     $maxCount = [Math]::Max($subfolders.Count, $files.Count)
@@ -140,7 +131,6 @@ function Build-InitializationTable {
             "Subfolder Name" = if ($i -lt $subfolders.Count) { $subfolders[$i].Name } else { "" }
             "Folder Last Write Date" = if ($i -lt $subfolders.Count) { $subfolders[$i].LastWriteTime } else { "" }
             "File Name" = if ($i -lt $files.Count) { $files[$i].Name } else { "" }
-            "File Last Write Date" = if ($i -lt $files.Count) { $files[$i].LastWriteTime } else { "" }
         }
     }
     if ($debugMode) { Write-Host "Built initialization table with $maxCount entries" }
@@ -148,6 +138,7 @@ function Build-InitializationTable {
 }
 
 # Build refined table excluding empty subfolders
+
 function Build-FirstRefinedTable {
     param (
         [Parameter(Mandatory=$true)]
@@ -156,15 +147,13 @@ function Build-FirstRefinedTable {
     $platform = Get-PlatformShortName
     $refinedTable = @()
 
-    # Get all subfolders and zips from the init table
     $subfolders = $initTable | Where-Object { $_."Subfolder Name" -ne "" } | Select-Object "Subfolder Name", "Folder Last Write Date"
-    $zips = $initTable | Where-Object { $_."File Name" -ne "" } | Select-Object "File Name", "File Last Write Date"
+    $zips = $initTable | Where-Object { $_."File Name" -ne "" } | Select-Object "File Name"
 
     foreach ($subfolder in $subfolders) {
         $fullSubfolderPath = Join-Path -Path $sourceFolder -ChildPath $subfolder."Subfolder Name"
         $folderSizeKB = Get-FolderSizeKB -folderPath $fullSubfolderPath
 
-        # Skip if folder is empty (below size limit)
         if ($folderSizeKB -lt $global:sizeLimitKB) {
             if ($debugMode) { Write-Host "Skipping empty subfolder: $($subfolder.'Subfolder Name') (Size: $folderSizeKB KB)" }
             continue
@@ -174,9 +163,13 @@ function Build-FirstRefinedTable {
         $dateCode = $subfolder."Folder Last Write Date".ToString($global:PreferredDateFormat)
         $expectedZip = "${subfolderName}_${dateCode}_${platform}.$global:CompressionExtension"
 
-        # Find the latest matching zip for this subfolder
         $matchingZip = $zips | Where-Object { $_."File Name" -like "${subfolderName}*_${platform}.$global:CompressionExtension" } | 
-                       Sort-Object "File Last Write Date" -Descending | 
+                       ForEach-Object { 
+                           [PSCustomObject]@{
+                               "File Name" = $_."File Name"
+                               "Date" = Get-FileDateStamp -InputValue $_."File Name"
+                           }
+                       } | Sort-Object "Date" -Descending | 
                        Select-Object -First 1
 
         $refinedTable += [PSCustomObject]@{
@@ -187,6 +180,80 @@ function Build-FirstRefinedTable {
     }
     if ($debugMode) { Write-Host "Built first refined table with $($refinedTable.Count) entries" }
     return $refinedTable
+}
+
+
+## function between here and Main are in place and in addition to the Build-ZipDecisionTable function
+# that had balooned into ~100 lines and therefore needed to be broken up
+
+function Get-FileDateStamp {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$InputValue
+    )
+    # Handle date code (e.g., "11012024")
+    if ($InputValue.Length -eq $global:PreferredDateFormat.Length) {
+        try {
+            return [datetime]::ParseExact($InputValue, $global:PreferredDateFormat, $null)
+        }
+        catch {
+            if ($debugMode) { Write-Host "Warning: Invalid date code '$InputValue'. Expected format: $global:PreferredDateFormat" }
+            return $null
+        }
+    }
+    # Handle zip filename (e.g., "PAC-MAN_11012024_steam.zip")
+    $parts = $InputValue -split "_"
+    if ($parts.Count -ge 3) {
+        try {
+            return [datetime]::ParseExact($parts[-2], $global:PreferredDateFormat, $null)
+        }
+        catch {
+            if ($debugMode) { Write-Host "Unable to parse date from '$InputValue'" }
+            return $null
+        }
+    }
+    # Handle folder path
+    if (Test-Path -Path $InputValue -PathType Container) {
+        $date = (Get-Item -Path $InputValue).LastWriteTime
+        return $date
+    }
+    if ($debugMode) { Write-Host "'$InputValue' is neither a valid date code, zip file, nor folder" }
+    return $null
+}
+
+function Move-DuplicateZips {
+    param (
+        [string]$SubfolderName,
+        [datetime]$ReferenceDate,
+        [string]$ExpectedZip,
+        [string]$DestinationFolder,
+        [string]$DeletedFolder,
+        [switch]$KeepDuplicates
+    )
+    if ($debugMode -and -not $KeepDuplicates) {
+        $platform = Get-PlatformShortName
+        $duplicateZips = Get-ChildItem -Path $DestinationFolder -Filter "${SubfolderName}*_${platform}.$global:CompressionExtension" | 
+                         Where-Object { 
+                             $dupDate = Get-FileDateStamp -InputValue $_.Name
+                             $dupDate -and $dupDate -lt $ReferenceDate -and $_.Name -ne $ExpectedZip
+                         }
+        foreach ($dup in $duplicateZips) {
+            $dupPath = $dup.FullName
+            $deletedDupPath = Join-Path -Path $DeletedFolder -ChildPath $dup.Name
+            Move-Item -Path $dupPath -Destination $deletedDupPath -Force
+            Write-Host "Moved duplicate older zip to: $deletedDupPath"
+        }
+    }
+}
+
+function Create-StubZip {
+    param (
+        [string]$ZipPath
+    )
+    if ($debugMode) {
+        New-Item -Path $ZipPath -ItemType File -Force | Out-Null
+        Write-Host "Created stub zip: $ZipPath (0 KB)"
+    }
 }
 
 function Build-ZipDecisionTable {
@@ -212,43 +279,32 @@ function Build-ZipDecisionTable {
 
     foreach ($entry in $refinedTable) {
         $subfolderName = $entry."Subfolder Name" -replace " ", "_"
-        $dateCode = $entry."Folder Last Write Date".ToString($global:PreferredDateFormat)
-        $expectedZip = "${subfolderName}_${dateCode}_${platform}.$global:CompressionExtension"
+        $folderDate = $entry."Folder Last Write Date"
+        $expectedZip = "${subfolderName}_$($folderDate.ToString($global:PreferredDateFormat))_${platform}.$global:CompressionExtension"
         $expectedZipPath = Join-Path -Path $destinationFolder -ChildPath $expectedZip
 
-        # Check if the zip name is hypothetical (no real zip exists)
         if ($entry."Zip File Name" -eq $expectedZip) {
             $status = "NeedsZip"
-            if ($debugMode) { 
-                Write-Host "Subfolder $($entry.'Subfolder Name') has no existing zip, marked as NeedsZip"
-                # Create stub zip file
-                New-Item -Path $expectedZipPath -ItemType File -Force | Out-Null
-                Write-Host "Created stub zip: $expectedZipPath (0 KB)"
-            }
+            if ($debugMode) { Write-Host "Subfolder $($entry.'Subfolder Name') has no existing zip, marked as NeedsZip" }
+            Move-DuplicateZips -SubfolderName $subfolderName -ReferenceDate $folderDate -ExpectedZip $expectedZip -DestinationFolder $destinationFolder -DeletedFolder $deletedFolder -KeepDuplicates:$keepDuplicates
+            Create-StubZip -ZipPath $expectedZipPath
         } else {
-            # Parse the date from the existing zip filename
-            $parts = $entry."Zip File Name" -split "_"
-            $existingDate = [datetime]::ParseExact($parts[-2], $global:PreferredDateFormat, $null)
+            $existingDate = Get-FileDateStamp -InputValue $entry."Zip File Name"
             $existingZipPath = Join-Path -Path $destinationFolder -ChildPath $entry."Zip File Name"
 
-            # Compare dates
-            if ($existingDate -lt $entry."Folder Last Write Date") {
+            if ($existingDate -lt $folderDate) {
                 $status = "NeedsUpdate"
-                if ($debugMode) { 
-                    Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is older than folder, marked as NeedsUpdate"
-                    # Move old zip to deleted folder
-                    if (Test-Path -Path $existingZipPath) {
-                        $deletedZipPath = Join-Path -Path $deletedFolder -ChildPath $entry."Zip File Name"
-                        Move-Item -Path $existingZipPath -Destination $deletedZipPath -Force
-                        Write-Host "Moved old zip to: $deletedZipPath"
-                    }
-                    # Create stub zip file
-                    New-Item -Path $expectedZipPath -ItemType File -Force | Out-Null
-                    Write-Host "Created stub zip: $expectedZipPath (0 KB)"
+                if ($debugMode) { Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is older than folder, marked as NeedsUpdate" }
+                if (Test-Path -Path $existingZipPath) {
+                    $deletedZipPath = Join-Path -Path $deletedFolder -ChildPath $entry."Zip File Name"
+                    Move-Item -Path $existingZipPath -Destination $deletedZipPath -Force
+                    if ($debugMode) { Write-Host "Moved old zip to: $deletedZipPath" }
                 }
+                Create-StubZip -ZipPath $expectedZipPath
             } else {
                 $status = "NoAction"
                 if ($debugMode) { Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is current or newer, marked as NoAction" }
+                Move-DuplicateZips -SubfolderName $subfolderName -ReferenceDate $existingDate -ExpectedZip $entry."Zip File Name" -DestinationFolder $destinationFolder -DeletedFolder $deletedFolder -KeepDuplicates:$keepDuplicates
             }
         }
 
@@ -263,6 +319,7 @@ function Build-ZipDecisionTable {
     if ($debugMode) { Write-Host "Built zip decision table with $($decisionTable.Count) entries" }
     return $decisionTable
 }
+
 # Main execution function
 function main {
     Validate-ScriptParameters
