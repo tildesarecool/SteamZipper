@@ -1,0 +1,104 @@
+# 12:05 3/4/2025
+# old version of function - the 100 lines long version before the refactor
+
+
+function Build-ZipDecisionTable {
+    param (
+        [Parameter(Mandatory=$true)]
+        $refinedTable
+    )
+    $platform = Get-PlatformShortName
+    $decisionTable = @()
+    $deletedFolder = Join-Path -Path $destinationFolder -ChildPath "deleted"
+
+    # Create deleted folder if it doesn't exist (only in debug mode)
+    if ($debugMode -and -not (Test-Path -Path $deletedFolder -PathType Container)) {
+        try {
+            New-Item -Path $deletedFolder -ItemType Directory -ErrorAction Stop | Out-Null
+            Write-Host "Created deleted folder: $deletedFolder"
+        }
+        catch {
+            Write-Host "Failed to create deleted folder: $deletedFolder" -ForegroundColor Red
+            Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+
+    foreach ($entry in $refinedTable) {
+        $subfolderName = $entry."Subfolder Name" -replace " ", "_"
+        $dateCode = $entry."Folder Last Write Date".ToString($global:PreferredDateFormat)
+        $expectedZip = "${subfolderName}_${dateCode}_${platform}.$global:CompressionExtension"
+        $expectedZipPath = Join-Path -Path $destinationFolder -ChildPath $expectedZip
+
+        # Check if the zip name is hypothetical (no real zip exists)
+        if ($entry."Zip File Name" -eq $expectedZip) {
+            $status = "NeedsZip"
+            if ($debugMode) { 
+                # Clean up duplicates, but only older ones
+                $duplicateZips = Get-ChildItem -Path $destinationFolder -Filter "${subfolderName}*_${platform}.$global:CompressionExtension" | 
+                                 Where-Object { 
+                                     $dupDate = [datetime]::ParseExact(($_.Name -split "_")[-2], $global:PreferredDateFormat, $null)
+                                     $dupDate -lt $entry."Folder Last Write Date" -and $_.Name -ne $expectedZip
+                                 }
+                foreach ($dup in $duplicateZips) {
+                    $dupPath = $dup.FullName
+                    $deletedDupPath = Join-Path -Path $deletedFolder -ChildPath $dup.Name
+                    Move-Item -Path $dupPath -Destination $deletedDupPath -Force
+                    Write-Host "Moved duplicate older zip to: $deletedDupPath"
+                }
+
+                Write-Host "Subfolder $($entry.'Subfolder Name') has no existing zip, marked as NeedsZip"
+                New-Item -Path $expectedZipPath -ItemType File -Force | Out-Null
+                Write-Host "Created stub zip: $expectedZipPath (0 KB)"
+            }
+        } else {
+            # Parse the date from the existing zip filename
+            $parts = $entry."Zip File Name" -split "_"
+            $existingDate = [datetime]::ParseExact($parts[-2], $global:PreferredDateFormat, $null)
+            $existingZipPath = Join-Path -Path $destinationFolder -ChildPath $entry."Zip File Name"
+
+            # Compare dates
+            if ($existingDate -lt $entry."Folder Last Write Date") {
+                $status = "NeedsUpdate"
+                if ($debugMode) { 
+                    Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is older than folder, marked as NeedsUpdate"
+                    if (Test-Path -Path $existingZipPath) {
+                        $deletedZipPath = Join-Path -Path $deletedFolder -ChildPath $entry."Zip File Name"
+                        Move-Item -Path $existingZipPath -Destination $deletedZipPath -Force
+                        Write-Host "Moved old zip to: $deletedZipPath"
+                    }
+                    New-Item -Path $expectedZipPath -ItemType File -Force | Out-Null
+                    Write-Host "Created stub zip: $expectedZipPath (0 KB)"
+                }
+            } else {
+                $status = "NoAction"
+                if ($debugMode) { 
+                    Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is current or newer, marked as NoAction"
+                    # Skip duplicate cleanup if the existing zip is newer or same
+                    if (-not $keepDuplicates) {
+                        $duplicateZips = Get-ChildItem -Path $destinationFolder -Filter "${subfolderName}*_${platform}.$global:CompressionExtension" | 
+                                         Where-Object { 
+                                             $dupDate = [datetime]::ParseExact(($_.Name -split "_")[-2], $global:PreferredDateFormat, $null)
+                                             $dupDate -lt $existingDate -and $_.Name -ne $entry."Zip File Name"
+                                         }
+                        foreach ($dup in $duplicateZips) {
+                            $dupPath = $dup.FullName
+                            $deletedDupPath = Join-Path -Path $deletedFolder -ChildPath $dup.Name
+                            Move-Item -Path $dupPath -Destination $deletedDupPath -Force
+                            Write-Host "Moved duplicate older zip to: $deletedDupPath"
+                        }
+                    }
+                }
+            }
+        }
+
+        $decisionTable += [PSCustomObject]@{
+            "Subfolder Name" = $entry."Subfolder Name"
+            "Folder Last Write Date" = $entry."Folder Last Write Date"
+            "Existing Zip Name" = if ($entry."Zip File Name" -ne $expectedZip) { $entry."Zip File Name" } else { "" }
+            "Expected Zip Name" = $expectedZip
+            "Status" = $status
+        }
+    }
+    if ($debugMode) { Write-Host "Built zip decision table with $($decisionTable.Count) entries" }
+    return $decisionTable
+}
