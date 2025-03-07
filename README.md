@@ -3,10 +3,13 @@ Loop through steam games folder, zipping each folder and giving it a unique name
 
 I'm not assuming this exact script hasn't already been done in many other languages many, many times before. I'm just doing this to try and backup my steam games. And practice PS scripting.
 
-### Current Script status: Broken
+### Current Script status: Broken (getting there)
 (the flagged "release" is good)
 
 Note: v3 is still in early stages of development and v2 is still broken.
+
+Actually, there's a file called ```hashtable_build - milestone-entirety of functionality.ps1``` in the repo right now that does have all the functionality. Use the usage diagram above with it if you wanted to test it. I'm still working on the final version. 
+And enable-jobs is indeed still broken.
 
 USAGE:
 ```steamzipper-v3.ps1 <source folder> <destination folder> <optional: enable-jobs> ```
@@ -56,13 +59,13 @@ If I polish it more (and add an ascii art based logo, obviously) I might try and
 ### Feature Wishlist 
 
 - Zipping multiple files at once using a job pool (like dogpool but uglier)
-- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder
-  - I could use that saved file as a config file for a match script that selective unzips the folder(s)...?
+- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder (completed via start-transcript)
+- created config file or "answer file" for repeat running
 - A companion script that as a batch or selectively on unzips the games to a destination
-- more/better error checking and dealing with the errors
-- re-write that gnarly if condition so it looks a lot better and is easier to follow [effectively done]
+- more/better error checking and dealing with the errors (effectively done)
+- re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
-- Some semblance of dealing with duplicate zips via parameter or whatever
+- Some semblance of dealing with duplicate zips via parameter or whatever [effectively done]
 - an argument to select a compression level besides the default
 - really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for compress-archive, 7zip, winrar or some other utility. 
 
@@ -70,6 +73,14 @@ Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 7 March 2025
+
+I decided I wanted to spend a lot more time on this script and I ended up not updating my progress log here. I went through mulitple iterations of the script to get to where it is right now: it actually works for compressing steam folders. It deals with duplicate zips, it compares dates across folders and zip files, it skips over small sized folders that don't need to be compressed. But I still have some re-factoring and more features to add (like what-if and some help documentation).
+
+And I started using the file ```hashtable_build - milestone-entirety of functionality.ps1``` for some reason.
+
+
 ### 3 February 2025
 
 I'm stilling filling in the functions from the old versions into this v3. I haven't even tried test running it quite yet. Hopefully this process won't take too much longer.
