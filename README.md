@@ -48,7 +48,7 @@ There's no help documentation or -what-if yet.
 ### Installation
 
 
-Since this is a single PowerShell script, that is the only thing required. You can view the source "raw" and copy/paste into notepad, or download a zip file from the green "code" button or use the tags link and click on *__* to find a zip file. Or just clone the repo. Any of those ways will get you the script file which you would just run from PS console. So far as I know local admin privileges should not be required. 
+Since this is a single PowerShell script, that is the only thing required. You can view the source "raw" and copy/paste into notepad, or download a zip file from the green "code" button or use the tags link and click on *v1.0-beta.3* (I realize my version numbering schemes are all over the place but stick with me) to find a zip file. Or just clone the repo. Any of those ways will get you the script file which you would just run from PS console. So far as I know local admin privileges should not be required. 
 
 As for permissions to run PS1 files in general that's between you and your PC administrator.
 
