@@ -3,18 +3,14 @@ Loop through steam games folder, zipping each folder and giving it a unique name
 
 I'm not assuming this exact script hasn't already been done in many other languages many, many times before. I'm just doing this to try and backup my steam games. And practice PS scripting.
 
-### Current Script status: Broken (getting there)
+### Current Script status: Work - Minimum viable functionality
 (the flagged "release" is good)
 
-Note: v3 is still in early stages of development and v2 is still broken.
-
-Actually, there's a file called ```hashtable_build - milestone-entirety of functionality.ps1``` in the repo right now that does have all the functionality. Use the usage diagram above with it if you wanted to test it. I'm still working on the final version. 
-And enable-jobs is indeed still broken.
+I've decided to make the current version a new "alpha build" and also just use the script name ```steamzipper.ps1```.
 
 USAGE:
-```steamzipper-v3.ps1 <source folder> <destination folder> <optional: enable-jobs> ```
+```steamzipper.ps1 <source folder> <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> ```
 
-(enable-jobs is broken)
 
 The script attempts to identify a platform, like Steam, by identifying the name in the source folder path. 
 
@@ -25,57 +21,73 @@ To generate the name of the zip file it takes into account
 
 Example:
 
-```.\steamzipper-v3.ps1 "P:\Program Files (x86)\Steam\steamapps\common" "P:\steamzipper\backup\" ```
+```.\steamzipper.ps1 "P:\Program Files (x86)\Steam\steamapps\common" "P:\steamzipper\backup\" ```
+
+I should perhaps mention I've been running all my tests with a line like this:
+```pwsh -command '& { .\steamzipper.ps1 "c:\steamzipper\steam temp storage" "c:\steamzipper\zip test output" -debugMode -VerbMode  }'```
 
 Example archive name would be something like:
 ```Horizon_Chase_10152024_steam.zip```
 
 I'm American so I can't break the month-day-year habit. Easy to modify...
 
-This is the hashtable I have for the platforms:
+**What works as of this milestone:**
+I've tested as many combinations of 
+- debugMode (only useful for writing the script), 
+- verbMode (lengthy transcript file good for development) and 
+- keepDuplicates, which allows for as many generated zip files as you would like.
+- a transcript file is automatically generated in the same folder as the script. 
 
-```
-    $platforms = @{
-        "epic games"   = "epic"
-        "Amazon Games" = "amazon"
-        "GOG"          = "gog"
-        "Steam"        = "steam"
-    }
-```
+**What has not been tested/won't work:**
+As of now the date format, like month-day-year, for the zip file names are defined as a global variable at the top of the script. If you run the script to get some zip files then go back and change the defined date format (to day-month-year for instance) the script will not know how to deal with this. I might add this extra layer of robustness in the future. For now just define your date format before running it or delete all the zips before re-running it with a new date format.
 
-The entries on the left are what would be found in a path, like in *Program Files (x86)*. The entries on the 
-right are what are going to end up in the zip file name as mentioned above. You can of course add and delete 
-platforms from this list. Just maintain the format of the hashtable (I could create a separate config file for 
-platforms but it seems unnecessary). 
+There's no help documentation or -what-if yet. 
+
+**You may want to test this on a few game folders first (copy/past some small games to a separate folder and run the script against that)**
 
 ### Installation
 
-Since this is a single PowerShell script, that is the only thing required. You can view the source "raw" and copy/paste into notepad, or download a zip file from the green "code" button or use the tags link and click on *v0.2.0-beta.1* to find a zip file. Or just clone the repo. Any of those ways will get you the script file which you would just run from PS console. So far as I know local admin privileges should not be required. 
+
+Since this is a single PowerShell script, that is the only thing required. You can view the source "raw" and copy/paste into notepad, or download a zip file from the green "code" button or use the tags link and click on *__* to find a zip file. Or just clone the repo. Any of those ways will get you the script file which you would just run from PS console. So far as I know local admin privileges should not be required. 
 
 As for permissions to run PS1 files in general that's between you and your PC administrator.
 
 If I polish it more (and add an ascii art based logo, obviously) I might try and make a "package" for use with PSGallery etc. That is definitely far off.
 
+Prior versions:
+*v0.2.0-beta.1*
+
 ### Feature Wishlist 
 
 - Zipping multiple files at once using a job pool (like dogpool but uglier)
-- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder (completed via start-transcript)
 - created config file or "answer file" for repeat running
 - A companion script that as a batch or selectively on unzips the games to a destination
-- more/better error checking and dealing with the errors (effectively done)
-- ---re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]---
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
-- Some semblance of dealing with duplicate zips via parameter or whatever [done]
 - an argument to select a compression level besides the default
 - really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for compress-archive, 7zip, winrar or some other utility. 
 - implement a what-if parameter that shows what operations would and in a perfect world an estimate of how much disk space that would require and how much appare space there is on the destination storage device
 - create a version (or refactor, whatever) of it to exist on the PS packages site
   - I'm not paying for a certificate though
+- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder 
+(completed via start-transcript)
+- more/better error checking and dealing with the errors (effectively done)
+- ---re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]---
+- Some semblance of dealing with duplicate zips via parameter or whatever [done]
+
 
 Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 8 March 2025
+
+I did some repo house cleaning and I'm back to using "steamZipper.ps1" as the script name. I updated the repo to a version with some functionality at least. This version could be used as of now to back up steam games. 
+
+The parameters keep duplicates, debugMode and verbMode should work in any combination. And I have developed a testing work flow I think accurately reflects some basic edge cases.
+
+I should perhaps mention I've been running all my tests with a line like this:
+```pwsh -command '& { .\steamzipper.ps1 "c:\steamzipper\steam temp storage" "c:\steamzipper\zip test output" -debugMode -VerbMode  }'```
 
 ### 7 March 2025
 
