@@ -63,11 +63,14 @@ If I polish it more (and add an ascii art based logo, obviously) I might try and
 - created config file or "answer file" for repeat running
 - A companion script that as a batch or selectively on unzips the games to a destination
 - more/better error checking and dealing with the errors (effectively done)
-- re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]
+- ---re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]---
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
-- Some semblance of dealing with duplicate zips via parameter or whatever [effectively done]
+- Some semblance of dealing with duplicate zips via parameter or whatever [done]
 - an argument to select a compression level besides the default
 - really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for compress-archive, 7zip, winrar or some other utility. 
+- implement a what-if parameter that shows what operations would and in a perfect world an estimate of how much disk space that would require and how much appare space there is on the destination storage device
+- create a version (or refactor, whatever) of it to exist on the PS packages site
+  - I'm not paying for a certificate though
 
 Might be a little much just for a thing that zips some folders.
 
