@@ -71,7 +71,7 @@ Prior versions:
 - a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder 
 (completed via start-transcript)
 - more/better error checking and dealing with the errors (effectively done)
-- ---re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]---
+- --re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]--
 - Some semblance of dealing with duplicate zips via parameter or whatever [done]
 
 

@@ -1,0 +1,109 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+some way to validate zip file names
+in case there's both
+ Horizon_Chase_12152024_steam.zip
+and
+Horizon_Chase_12152024_steam - Copy.zip
+or some such nonsense
+
+also some kind of 'trim' applied to make sure there's no spaces before or after the file name
+
+timer of zip operations (Measure-Command)
+
+ideas: with or without -what-if use a -create-answerfile
+then to use answer file use -answerfile:file.txt
+
+also default to displaying the operations that are going to happen with a "press any key to continue" pause
+and use a -noPrompt to not pause to press a key
+
+also a way to limit max size of folders. like back up only folders less than 20 gigs or 50 gigs
+
+
+
+
+also feed in a bare list of folder names only back up that list?
+i mean the out put of dir /b
+or the ps equivalent
+
+this text file with one folder per line for selective compression could then be utlized in a hypothetical selective decompression companion script
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+running with line:
+pwsh -command '& { .\steamzipper.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }'
+
+pretest:
+
+source contents:
+
+
+
+
+
+destination contents:
+
+(deleted empty)
+
+
+test result:
+
+contents of deleted:
+
+
+contents of destination:
+
+
+
+
+transcript file:
+
+
+Remove-Item -Path "P:\steamzipper\zip test output\bit_Dungeon_11012024_steam.zip" -Force
+Remove-Item -Path "P:\steamzipper\zip test output\bit_Dungeon_II_11012024_steam.zip" -Force
+Remove-Item -Path "P:\steamzipper\zip test output\bit_Dungeon_III_11012024_steam.zip" -Force
+Remove-Item -Path "P:\steamzipper\zip test output\Dig_Dog_11092024_steam.zip" -Force
+Remove-Item -Path "P:\steamzipper\zip test output\Horizon_Chase_01012025_steam.zip" -Force
+Remove-Item -Path "P:\steamzipper\zip test output\Ms._PAC-MAN_11012024_steam.zip" -Force
+Remove-Item -Path "P:\steamzipper\zip test output\Outzone_11012024_steam.zip" -Force
+Remove-Item -Path "P:\steamzipper\zip test output\PAC-MAN_02062025_steam.zip" -Force
+Move-Item -Path "P:\steamzipper\zip test output\deleted\*" -Destination "P:\steamzipper\zip test output\" -Force
+
+
+
+Get-ChildItem -Path "P:\steamzipper\steam temp storage" | Select-Object Name, LastWriteTime
+
+Get-ChildItem -Path "P:\steamzipper\zip test output" | Select-Object Name
+
+Get-ChildItem -Path "P:\steamzipper\zip test output\deleted\" | Select-Object Name

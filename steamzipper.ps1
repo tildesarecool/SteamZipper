@@ -5,11 +5,12 @@ param (
     [string]$sourceFolder,
     [Parameter(Mandatory=$true)]
     [string]$destinationFolder,
-    [switch]$debugMode,  # Now just toggles stubs vs. real compression
-    [switch]$VerbMode,    # New: toggles detailed output
-    [switch]$keepDuplicates
+    [switch]$debugMode,
+    [switch]$VerbMode,
+    [switch]$keepDuplicates,
+    [ValidateSet("Optimal", "Fastest", "NoCompression")]
+    [string]$CompressionLevel = "Optimal"  # Default to Optimal
 )
-
 
 # Define immutable global variables
 if (-not (Test-Path Variable:\maxJobsDefine)) {
@@ -248,10 +249,12 @@ function Build-CompressTable {
     if ($VerbMode) { Write-Host "Built compress table with $($compressTable.Count) entries" }
     return $compressTable
 }
+
 function Compress-Folders {
     param (
         [Parameter(Mandatory=$true)] $decisionTable,
-        [switch]$keepDuplicates  # Add parameter
+        [switch]$keepDuplicates,
+        [string]$CompressionLevel = "Optimal"
     )
     $deletedFolder = Join-Path -Path $destinationFolder -ChildPath "deleted"
     if (-not (Test-Path -Path $deletedFolder)) { New-Item -Path $deletedFolder -ItemType Directory | Out-Null; if ($VerbMode) { Write-Host "Created deleted folder: $deletedFolder" } }
@@ -259,6 +262,8 @@ function Compress-Folders {
     foreach ($entry in $decisionTable) {
         $sourcePath = Join-Path -Path $sourceFolder -ChildPath $entry."Subfolder Name"
         $zipPath = Join-Path -Path $destinationFolder -ChildPath $entry."Expected Zip"
+        
+        # Handle duplicates if needed
         if ($entry."Existing Zip" -and $entry.Status -eq "NeedsUpdate") {
             Move-DuplicateZips -SubfolderName ($entry."Subfolder Name" -replace " ", "_") `
                               -ReferenceDate $entry."Folder Last Write Date" `
@@ -275,10 +280,15 @@ function Compress-Folders {
                               -DeletedFolder $deletedFolder `
                               -KeepDuplicates:$keepDuplicates
         }
+
         if (-not $debugMode) {
-            Compress-Archive -Path $sourcePath -DestinationPath $zipPath -Force -ErrorAction Stop
-            Write-Host "Compressed $($entry.'Subfolder Name') to $zipPath"
-            if ($VerbMode) { Write-Host "Compression completed for $($entry.'Subfolder Name')" }
+            $timer = Measure-Command {
+                Compress-Archive -Path $sourcePath -DestinationPath $zipPath -Force -CompressionLevel $CompressionLevel -ErrorAction Stop
+                Write-Host "Compressed $($entry.'Subfolder Name') to $zipPath"
+                if ($VerbMode) { Write-Host "Compression completed for $($entry.'Subfolder Name')" }
+            }
+            $roundedTime = [Math]::Round($timer.TotalSeconds, 1)  # Round to 1 decimal place
+            Write-Host "Operation for $($entry.'Subfolder Name') took $roundedTime seconds"
         } else {
             New-Item -Path $zipPath -ItemType File -Force | Out-Null
             Write-Host "Created stub zip: $zipPath (0 KB)"
@@ -287,7 +297,12 @@ function Compress-Folders {
     }
 }
 # Main execution function
+
 function main {
+    Write-Host "Welcome to SteamZipper!" -ForegroundColor Cyan
+    Write-Host "This script zips your Steam folders. Ensure the storage device of '$destinationFolder' has enough space!" -ForegroundColor Yellow
+    Write-Host "Running on $([System.Environment]::MachineName) - $(Get-Date)" -ForegroundColor Green
+
     $transcriptPath = Join-Path -Path $global:scriptfolder -ChildPath $global:logBaseName
     try { Start-Transcript -Path $transcriptPath -Force -ErrorAction Stop | Out-Null } catch {}
 
@@ -307,9 +322,9 @@ function main {
 
     $compressTable = Build-CompressTable -zipDecisionTable $global:ZipDecisionTable
     if ($null -eq $compressTable) { Throw "Failed to build CompressTable" }
-    Compress-Folders -decisionTable $compressTable -keepDuplicates:$keepDuplicates  # Pass switch
+    Compress-Folders -decisionTable $compressTable -keepDuplicates:$keepDuplicates -CompressionLevel $CompressionLevel
 
-    if ($VerbMode) {  # Removed duplicate $debugMode check
+    if ($VerbMode) {
         Write-Host "Initialization Table:"; $global:InitializationTable | Format-Table -AutoSize
         Write-Host "First Refined Table:"; $global:FirstRefinedTable | Format-Table -AutoSize
         Write-Host "Zip Decision Table:"; $global:ZipDecisionTable | Format-Table -AutoSize
