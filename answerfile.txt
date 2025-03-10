@@ -1,0 +1,8 @@
+{
+  "sourceFolder": "C:\\Users\\keith\\Documents\\steam temp storage",
+  "destinationFolder": "C:\\Users\\keith\\Documents\\steambackup\\latest",
+  "debugMode": false,
+  "VerbMode": false,
+  "keepDuplicates": false,
+  "CompressionLevel": "Optimal"
+}
