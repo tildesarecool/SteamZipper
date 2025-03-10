@@ -9,7 +9,7 @@ I'm not assuming this exact script hasn't already been done in many other langua
 I've decided to make the current version a new "alpha build" and also just use the script name ```steamzipper.ps1```.
 
 USAGE:
-```steamzipper.ps1 <source folder> <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> ```
+```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> <optional: createAnswerFile> <optional: answerFile:answer.txt>```
 
 
 The script attempts to identify a platform, like Steam, by identifying the name in the source folder path. 
@@ -21,10 +21,10 @@ To generate the name of the zip file it takes into account
 
 Example:
 
-```.\steamzipper.ps1 "P:\Program Files (x86)\Steam\steamapps\common" "P:\steamzipper\backup\" ```
+```.\steamzipper.ps1 -sourceFolder "P:\Program Files (x86)\Steam\steamapps\common" -destinationFolder "P:\steamzipper\backup\" ```
 
 I should perhaps mention I've been running all my tests with a line like this:
-```pwsh -command '& { .\steamzipper.ps1 "c:\steamzipper\steam temp storage" "c:\steamzipper\zip test output" -debugMode -VerbMode  }'```
+```pwsh -command '& { .\steamzipper.ps1 -sourceFolder "c:\steamzipper\steam temp storage" -destinationFolder "c:\steamzipper\zip test output" -debugMode -VerbMode  }'```
 
 Example archive name would be something like:
 ```Horizon_Chase_10152024_steam.zip```
@@ -79,6 +79,22 @@ Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 9 March 2025
+
+I think the past week was just leading up to today. Since I ended up implementing so many things.
+
+Today I have added the following:
+
+- create answer file: generates a JSON formatted text file containing all the parameters
+- use answer file: specify a generated answer file to use that as the list of parameters (in case repeated runs are necessary)
+- must now specify source and destination manually in the command line as in the following. This was to make sure the answer file functionality worked.
+```pwsh -command '& { .\steamzipper.ps1 -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output" -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest -createAnswerFile:answer.txt }' ```     
+- Added a measure-command around zip compression command to display how long the compression took (rounded to the nearest 10th of second).
+- Actually I am no longer sure when I added the compression parameter, further info: the default compression for the compress-archive cmdlet is "optimal". So you can use that parameter if you want but leaving out the compressionLevel parameter will just use the "optimal" setting. The measure-command isn't used when -debugMode parameter specified (it would be timing creation of a 0 KB file).
+- can now specify a text file with a list of folders to be compressed, one folder name per line (defaults to looking for txt file in the script folder). This is so a user can optionally only back up specific folders. See folders.txt in the repo for an example. Sample command line:
+```pwsh -command '& { .\steamzipper.ps1 -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output" -sourceFile "C:\SteamZipper\folders.txt" -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }'```
+
 
 ### 8 March 2025
 

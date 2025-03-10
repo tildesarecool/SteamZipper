@@ -66,15 +66,8 @@ pwsh -command '& { .\steamzipper.ps1 "P:\steamzipper\steam temp storage" "P:\ste
 
 pretest:
 
-source contents:
+Pretest: Ready-to-Test State Restored
 
-
-
-
-
-destination contents:
-
-(deleted empty)
 
 
 test result:

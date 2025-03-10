@@ -1,16 +1,34 @@
 #pwsh -command '& { .\hashtable_build.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode }'
 
 param (
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, ParameterSetName="Manual")]
     [string]$sourceFolder,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, ParameterSetName="Manual")]
     [string]$destinationFolder,
+    [Parameter(ParameterSetName="Manual")]
+    [string]$sourceFile,  # New optional parameter
     [switch]$debugMode,
     [switch]$VerbMode,
     [switch]$keepDuplicates,
     [ValidateSet("Optimal", "Fastest", "NoCompression")]
-    [string]$CompressionLevel = "Optimal"  # Default to Optimal
+    [string]$CompressionLevel = "Optimal",
+    [Parameter(ParameterSetName="AnswerFile")]
+    [string]$answerFile,
+    [string]$createAnswerFile
 )
+
+# Load answer file if provided
+if ($answerFile) {
+    if (-not (Test-Path $answerFile)) { Write-Error "Answer file '$answerFile' not found"; exit 1 }
+    $params = Get-Content $answerFile -Raw | ConvertFrom-Json
+    $sourceFolder = $params.sourceFolder
+    $destinationFolder = $params.destinationFolder
+    $debugMode = $params.debugMode
+    $VerbMode = $params.VerbMode
+    $keepDuplicates = $params.keepDuplicates
+    $CompressionLevel = $params.CompressionLevel
+    # If we later allow sourceFile in answerFile, add: $sourceFile = $params.sourceFile
+}
 
 # Define immutable global variables
 if (-not (Test-Path Variable:\maxJobsDefine)) {
@@ -90,7 +108,35 @@ function Get-PlatformShortName {
 
 # Build raw initialization table
 function Build-InitializationTable {
-    $subfolders = Get-ChildItem -Path $sourceFolder -Directory | Select-Object Name, LastWriteTime
+    if ($sourceFile) {
+        # Check if sourceFile is a simple filename (no path separators)
+        if ($sourceFile -notmatch '[\\/]') {
+            $potentialPath = Join-Path -Path $global:scriptfolder -ChildPath $sourceFile
+            if (Test-Path $potentialPath) {
+                $sourceFilePath = $potentialPath
+            } else {
+                # If not in script folder, assume it's a full path
+                $sourceFilePath = $sourceFile
+            }
+        } else {
+            $sourceFilePath = $sourceFile
+        }
+        if (-not (Test-Path $sourceFilePath)) { Write-Error "Source file '$sourceFilePath' not found"; exit 1 }
+        $subfolderNames = Get-Content $sourceFilePath | Where-Object { $_ -match '\S' } | ForEach-Object { $_.Trim() }
+        $subfolders = $subfolderNames | ForEach-Object {
+            $fullPath = Join-Path -Path $sourceFolder -ChildPath $_
+            if (Test-Path $fullPath -PathType Container) {
+                [PSCustomObject]@{
+                    Name = $_
+                    LastWriteTime = (Get-Item $fullPath).LastWriteTime
+                }
+            } else {
+                if ($VerbMode) { Write-Host "Warning: '$fullPath' not found, skipping" }
+            }
+        } | Where-Object { $_ }
+    } else {
+        $subfolders = Get-ChildItem -Path $sourceFolder -Directory | Select-Object Name, LastWriteTime
+    }
     $files = Get-ChildItem -Path $destinationFolder -File -Filter "*.$global:CompressionExtension" | Select-Object Name
     $hashTable = @()
     $maxCount = [Math]::Max($subfolders.Count, $files.Count)
@@ -101,7 +147,7 @@ function Build-InitializationTable {
             "File Name" = if ($i -lt $files.Count) { $files[$i].Name } else { "" }
         }
     }
-    if ($VerbMode) { Write-Host "Built initialization table with $maxCount entries" }  # Changed from $debugMode
+    if ($VerbMode) { Write-Host "Built initialization table with $maxCount entries" }
     return $hashTable
 }
 # Build refined table excluding empty subfolders
@@ -305,6 +351,20 @@ function main {
 
     $transcriptPath = Join-Path -Path $global:scriptfolder -ChildPath $global:logBaseName
     try { Start-Transcript -Path $transcriptPath -Force -ErrorAction Stop | Out-Null } catch {}
+
+    # ... existing code ...
+    if ($createAnswerFile) {
+        $answerData = [PSCustomObject]@{
+            sourceFolder = $sourceFolder
+            destinationFolder = $destinationFolder
+            debugMode = [bool]$debugMode
+            VerbMode = [bool]$VerbMode
+            keepDuplicates = [bool]$keepDuplicates
+            CompressionLevel = $CompressionLevel
+        }
+        $answerData | ConvertTo-Json | Out-File $createAnswerFile -Force
+        Write-Host "Created answer file: $createAnswerFile"
+    }
 
     Validate-ScriptParameters
 
