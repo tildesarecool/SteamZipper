@@ -62,25 +62,27 @@ Prior versions:
 ### Feature Wishlist 
 
 - Zipping multiple files at once using a job pool (like dogpool but uglier)
-- created config file or "answer file" for repeat running
 - A companion script that as a batch or selectively on unzips the games to a destination
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
-- an argument to select a compression level besides the default
-- really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for compress-archive, 7zip, winrar or some other utility. 
+- really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for the compress-archive cmdlet such as  7zip, winrar or some other utility. 
 - implement a what-if parameter that shows what operations would and in a perfect world an estimate of how much disk space that would require and how much appare space there is on the destination storage device
 - create a version (or refactor, whatever) of it to exist on the PS packages site
   - I'm not paying for a certificate though
-- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder 
-(completed via start-transcript)
+- implement way of provided a text file list of folders to be compressed in place of destination path [done]
+- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder [done]
 - more/better error checking and dealing with the errors (effectively done)
-- --re-write that gnarly if condition so it looks a lot better and is easier to follow [replaced]--
 - Some semblance of dealing with duplicate zips via parameter or whatever [done]
-
+- created config file or "answer file" for repeat running [done]
+- - an argument to select a compression level besides the default [done]
 
 Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 9 March 2025
+
+- finally got a milestone for a working version of the regression test script. This script ended up with static paths and file name lists so it would require editing if someone else wanted to try to use it for some reason.
 
 ### 9 March 2025
 

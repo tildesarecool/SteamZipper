@@ -1,6 +1,0 @@
-bit Dungeon
-bit Dungeon II
-bit Dungeon III
-Horizon Chase
-Markov Alg
-PAC-MAN
