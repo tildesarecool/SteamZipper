@@ -11,6 +11,8 @@ I've decided to make the current version a new "alpha build" and also just use t
 USAGE:
 ```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> <optional: createAnswerFile> <optional: answerFile:answer.txt>```
 
+note: this is how to use a generated answer file
+```pwsh -command '& { .\steamzipper.ps1 -answerFile:answer.txt }'```
 
 The script attempts to identify a platform, like Steam, by identifying the name in the source folder path. 
 
@@ -94,6 +96,9 @@ Today I have added the following:
 - Actually I am no longer sure when I added the compression parameter, further info: the default compression for the compress-archive cmdlet is "optimal". So you can use that parameter if you want but leaving out the compressionLevel parameter will just use the "optimal" setting. The measure-command isn't used when -debugMode parameter specified (it would be timing creation of a 0 KB file).
 - can now specify a text file with a list of folders to be compressed, one folder name per line (defaults to looking for txt file in the script folder). This is so a user can optionally only back up specific folders. See folders.txt in the repo for an example. Sample command line:
 ```pwsh -command '& { .\steamzipper.ps1 -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output" -sourceFile "C:\SteamZipper\folders.txt" -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }'```
+- I just realized this is the only way to use the generated answer file:
+```pwsh -command '& { .\steamzipper.ps1 -answerFile:answer.txt }'```
+- I'm also starting development on a automated regression testing script, but this won't help anybody besides me in attempted development. And it's not done yet. Or exist techncially. Soon.
 
 
 ### 8 March 2025
