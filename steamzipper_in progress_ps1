@@ -1,21 +1,34 @@
 #pwsh -command '& { .\hashtable_build.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode }'
 
-[CmdletBinding(DefaultParameterSetName="Manual")]
 param (
-    [Parameter(ParameterSetName="Manual")][string]$sourceFolder,
-    [Parameter(ParameterSetName="Manual")][string]$destinationFolder,
-    [Parameter(ParameterSetName="Manual")][string]$sourceFile,  # Already present, no change
-    [Parameter(ParameterSetName="Manual")][switch]$debugMode,
-    [Parameter(ParameterSetName="Manual")][switch]$VerbMode,
-    [Parameter(ParameterSetName="Manual")][switch]$keepDuplicates,
-    [Parameter(ParameterSetName="Manual")][ValidateSet("Optimal", "Fastest", "NoCompression")][string]$CompressionLevel = "Optimal",
-    [Parameter(ParameterSetName="Manual")][string]$answerFile,
-    [Parameter(ParameterSetName="Manual")][string]$createAnswerFile
+    [Parameter(Mandatory=$true, ParameterSetName="Manual")]
+    [string]$sourceFolder,
+    [Parameter(Mandatory=$true, ParameterSetName="Manual")]
+    [string]$destinationFolder,
+    [Parameter(ParameterSetName="Manual")]
+    [string]$sourceFile,
+    [switch]$debugMode,
+    [switch]$VerbMode,
+    [switch]$keepDuplicates,
+    [ValidateSet("Optimal", "Fastest", "NoCompression")]
+    [string]$CompressionLevel = "Optimal",
+    [Parameter(ParameterSetName="AnswerFile")]
+    [string]$answerFile,
+    [string]$createAnswerFile
 )
 
-# Remove this check since AnswerFile set is gone
-# if ($PSCmdlet.ParameterSetName -eq "AnswerFile" -and -not $answerFile) { ... }
-
+# Load answer file if provided
+if ($answerFile) {
+    if (-not (Test-Path $answerFile)) { Write-Error "Answer file '$answerFile' not found"; exit 1 }
+    $params = Get-Content $answerFile -Raw | ConvertFrom-Json
+    $sourceFolder = $params.sourceFolder
+    $destinationFolder = $params.destinationFolder
+    $debugMode = $params.debugMode
+    $VerbMode = $params.VerbMode
+    $keepDuplicates = $params.keepDuplicates
+    $CompressionLevel = $params.CompressionLevel
+    # If we later allow sourceFile in answerFile, add: $sourceFile = $params.sourceFile
+}
 
 # Define immutable global variables
 if (-not (Test-Path Variable:\maxJobsDefine)) {
@@ -42,58 +55,24 @@ if (-not (Test-Path Variable:\logBaseName)) {
     Set-Variable -Name "logBaseName" -Value "transcript.txt" -Scope Global -Option ReadOnly
 }
 
-if ($answerFile) {
-    $answerFilePath = if ($answerFile -notmatch '[\\/]') { 
-        Join-Path -Path $global:scriptfolder -ChildPath $answerFile 
-    } else { 
-        $answerFile 
-    }
-    if (-not (Test-Path $answerFilePath)) { 
-        Write-Host "Error: Answer file '$answerFilePath' does not exist. Please provide a valid file path." -ForegroundColor Red
-        exit 1 
-    }
-    try {
-        $params = Get-Content $answerFilePath -Raw | ConvertFrom-Json -ErrorAction Stop
-        foreach ($prop in @("debugMode", "VerbMode", "keepDuplicates")) {
-            if ($null -ne $params.$prop -and $params.$prop -isnot [bool]) {
-                Write-Host "Error: '$prop' in '$answerFilePath' must be a boolean (true/false), got '$($params.$prop)'" -ForegroundColor Red
-                exit 1
-            }
-        }
-    } catch {
-        Write-Host "Error: Failed to parse answer file '$answerFilePath': $($_.Exception.Message)" -ForegroundColor Red
-        exit 1
-    }
-    if ($params.sourceFolder) { $sourceFolder = $params.sourceFolder }
-    if ($params.destinationFolder) { $destinationFolder = $params.destinationFolder }
-    if ($null -ne $params.debugMode) { $debugMode = $params.debugMode }
-    if ($null -ne $params.VerbMode) { $VerbMode = $params.VerbMode }
-    if ($null -ne $params.keepDuplicates) { $keepDuplicates = $params.keepDuplicates }
-    if ($params.CompressionLevel) { $CompressionLevel = $params.CompressionLevel }
-    if ($params.sourceFile) { $sourceFile = $params.sourceFile }  # Add support in answer file
-}
-
 # Validate script parameters
-
 function Validate-ScriptParameters {
-    $cleanSource = $sourceFolder.Trim('"', "'")
-    $cleanDest = $destinationFolder.Trim('"', "'")
-    if (-not (Test-Path -Path $cleanSource -PathType Container)) {
-        Write-Host "Error: Source folder '$cleanSource' does not exist. Please provide a valid path." -ForegroundColor Red
-        exit 1
+    if ($PSBoundParameters['NonInteractive'] -and (-not $sourceFolder -or -not $destinationFolder)) {
+        throw "Error: SourceFolder and DestinationFolder are mandatory in non-interactive mode, exiting..."
     }
-    if (-not (Test-Path -Path $cleanDest -PathType Container)) {
+    if (-not $sourceFolder -or -not (Test-Path -Path $sourceFolder -PathType Container)) {
+        throw "Error: Source folder '$sourceFolder' not found or invalid, exiting..."
+    }
+    if (-not $destinationFolder -or -not (Test-Path -Path $destinationFolder -PathType Container)) {
         try {
-            New-Item -Path $cleanDest -ItemType Directory -ErrorAction Stop | Out-Null
-            Write-Host "Successfully created destination folder: $cleanDest" -ForegroundColor Green
-        } catch {
-            Write-Host "Error: Failed to create destination folder '$cleanDest': $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
+            New-Item -Path $destinationFolder -ItemType Directory -ErrorAction Stop | Out-Null
+            Write-Host "Successfully created destination folder: $destinationFolder"
+        }
+        catch {
+            throw "Error: Failed to create destination folder '$destinationFolder': $($_.Exception.Message)"
         }
     }
 }
-
-
 # Calculate folder size in KB
 function Get-FolderSizeKB {
     param (
@@ -125,26 +104,21 @@ function Get-PlatformShortName {
 
 # Build raw initialization table
 function Build-InitializationTable {
-    $subfolders = @()
     if ($sourceFile) {
-        # Resolve sourceFile path
-        $sourceFilePath = if ($sourceFile -notmatch '[\\/]') { 
-            Join-Path -Path $global:scriptfolder -ChildPath $sourceFile 
-        } else { 
-            $sourceFile 
+        # Check if sourceFile is a simple filename (no path separators)
+        if ($sourceFile -notmatch '[\\/]') {
+            $potentialPath = Join-Path -Path $global:scriptfolder -ChildPath $sourceFile
+            if (Test-Path $potentialPath) {
+                $sourceFilePath = $potentialPath
+            } else {
+                # If not in script folder, assume it's a full path
+                $sourceFilePath = $sourceFile
+            }
+        } else {
+            $sourceFilePath = $sourceFile
         }
-        if (-not (Test-Path $sourceFilePath -PathType Leaf)) { 
-            Write-Host "Error: Source file '$sourceFilePath' does not exist or is not a file. Please provide a valid file path." -ForegroundColor Red
-            exit 1
-        }
-        # Read and process subfolder names from file
-        $subfolderNames = Get-Content $sourceFilePath -ErrorAction Stop | 
-                         Where-Object { $_ -match '\S' } | 
-                         ForEach-Object { $_.Trim() }
-        if ($subfolderNames.Count -eq 0) {
-            Write-Host "Error: Source file '$sourceFilePath' is empty or contains no valid entries." -ForegroundColor Red
-            exit 1
-        }
+        if (-not (Test-Path $sourceFilePath)) { Write-Error "Source file '$sourceFilePath' not found"; exit 1 }
+        $subfolderNames = Get-Content $sourceFilePath | Where-Object { $_ -match '\S' } | ForEach-Object { $_.Trim() }
         $subfolders = $subfolderNames | ForEach-Object {
             $fullPath = Join-Path -Path $sourceFolder -ChildPath $_
             if (Test-Path $fullPath -PathType Container) {
@@ -153,24 +127,17 @@ function Build-InitializationTable {
                     LastWriteTime = (Get-Item $fullPath).LastWriteTime
                 }
             } else {
-                if ($VerbMode) { Write-Host "Warning: Subfolder '$fullPath' not found, skipping" -ForegroundColor Yellow }
-                $null
+                if ($VerbMode) { Write-Host "Warning: '$fullPath' not found, skipping" }
             }
         } | Where-Object { $_ }
-        if ($subfolders.Count -eq 0) {
-            Write-Host "Error: No valid subfolders from '$sourceFilePath' exist in '$sourceFolder'." -ForegroundColor Red
-            exit 1
-        }
-        if ($VerbMode) { Write-Host "Loaded $($subfolders.Count) subfolders from '$sourceFilePath'" -ForegroundColor Green }
     } else {
-        # Default behavior: all subfolders in sourceFolder
-        $subfolders = Get-ChildItem -Path $sourceFolder -Directory -ErrorAction Stop | 
-                      Select-Object Name, LastWriteTime
-        if ($VerbMode) { Write-Host "Loaded $($subfolders.Count) subfolders from '$sourceFolder'" -ForegroundColor Green }
+        $subfolders = Get-ChildItem -Path $sourceFolder -Directory | Select-Object Name, LastWriteTime
+        if ($VerbMode) {
+            Write-Host "Detected subfolders ($($subfolders.Count)):"
+            $subfolders | ForEach-Object { Write-Host "  - $($_.Name)" }
+        }
     }
-
-    $files = Get-ChildItem -Path $destinationFolder -File -Filter "*.$global:CompressionExtension" -ErrorAction Stop | 
-             Select-Object Name
+    $files = Get-ChildItem -Path $destinationFolder -File -Filter "*.$global:CompressionExtension" | Select-Object Name
     $hashTable = @()
     $maxCount = [Math]::Max($subfolders.Count, $files.Count)
     for ($i = 0; $i -lt $maxCount; $i++) {
@@ -180,7 +147,7 @@ function Build-InitializationTable {
             "File Name" = if ($i -lt $files.Count) { $files[$i].Name } else { "" }
         }
     }
-    if ($VerbMode) { Write-Host "Built initialization table with $maxCount entries" -ForegroundColor Green }
+    if ($VerbMode) { Write-Host "Built initialization table with $maxCount entries" }
     return $hashTable
 }
 # Build refined table excluding empty subfolders
@@ -189,38 +156,36 @@ function Build-ZipDecisionTable {
     param ([Parameter(Mandatory=$true)] $refinedTable)
     $platform = Get-PlatformShortName
     $decisionTable = @()
-    $existingZips = Get-ChildItem -Path $destinationFolder -File -Filter "*.$global:CompressionExtension" | Select-Object -Property Name, @{Name="ParsedDate"; Expression={
-        $parts = $_.Name -split "_"
-        try { [datetime]::ParseExact($parts[-2], $global:PreferredDateFormat, $null) } catch { $null }
-    }} | Where-Object { $_.ParsedDate -ne $null }
+    $existingZips = Get-ChildItem -Path $destinationFolder -File -Filter "*.$global:CompressionExtension" | 
+                    Select-Object -Property Name, LastWriteTime, @{Name="ParsedDate"; Expression={
+                        $parts = $_.Name -split "_"
+                        try { [datetime]::ParseExact($parts[-2], $global:PreferredDateFormat, $null) } catch { $null }
+                    }} | Where-Object { $_.ParsedDate -ne $null }
 
     foreach ($entry in $refinedTable) {
         $subfolderName = $entry."Subfolder Name" -replace " ", "_"
         $dateCode = $entry."Folder Last Write Date".ToString($global:PreferredDateFormat)
         $expectedZip = "${subfolderName}_${dateCode}_${platform}.$global:CompressionExtension"
-        $matchingZips = $existingZips | Where-Object { 
-            $parts = $_.Name -split "_"
-            ($parts[-1] -eq "$platform.$global:CompressionExtension") -and ($parts[0..($parts.Count - 3)] -join "_") -eq $subfolderName
-        }
-        if ($entry."Zip File Name" -eq $expectedZip -and -not ($matchingZips | Where-Object { $_.Name -eq $expectedZip })) {
+        $matchingZip = $existingZips | Where-Object { $_.Name -eq $expectedZip } | Select-Object -First 1
+
+        if (-not $matchingZip) {
             $status = "NeedsZip"
             if ($VerbMode) { Write-Host "Subfolder $($entry.'Subfolder Name') has no existing zip, marked as NeedsZip" }
         } else {
-            $existingParts = $entry."Zip File Name" -split "_"
-            $existingDate = [datetime]::ParseExact($existingParts[-2], $global:PreferredDateFormat, $null).Date  # Fix 1: Strip time
-            $folderDate = $entry."Folder Last Write Date".Date  # Fix 1: Strip time
+            $existingDate = [datetime]::ParseExact(($matchingZip.Name -split "_")[-2], $global:PreferredDateFormat, $null).Date
+            $folderDate = $entry."Folder Last Write Date".Date
             if ($existingDate -lt $folderDate) {
                 $status = "NeedsUpdate"
-                if ($VerbMode) { Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is older than folder, marked as NeedsUpdate" }
+                if ($VerbMode) { Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($matchingZip.Name)) is older than folder, marked as NeedsUpdate" }
             } else {
                 $status = "NoAction"
-                if ($VerbMode) { Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($entry.'Zip File Name')) is current or newer, marked as NoAction" }
+                if ($VerbMode) { Write-Host "Subfolder $($entry.'Subfolder Name') zip ($($matchingZip.Name)) is current or newer, marked as NoAction" }
             }
         }
         $decisionTable += [PSCustomObject]@{
             "Subfolder Name" = $entry."Subfolder Name"
             "Folder Last Write Date" = $entry."Folder Last Write Date"
-            "Existing Zip Name" = if ($entry."Zip File Name" -ne $expectedZip) { $entry."Zip File Name" } else { "" }
+            "Existing Zip Name" = if ($matchingZip) { $matchingZip.Name } else { "" }
             "Expected Zip Name" = $expectedZip
             "Status" = $status
         }
@@ -228,6 +193,7 @@ function Build-ZipDecisionTable {
     if ($VerbMode) { Write-Host "Built zip decision table with $($decisionTable.Count) entries" }
     return $decisionTable
 }
+
 ## function between here and Main are in place and in addition to the Build-ZipDecisionTable function
 # that had balooned into ~100 lines and therefore needed to be broken up
 function Get-FileDateStamp {
@@ -281,9 +247,9 @@ function Build-FirstRefinedTable {
     foreach ($subfolder in $subfolders) {
         $fullSubfolderPath = Join-Path -Path $sourceFolder -ChildPath $subfolder."Subfolder Name"
         $folderSizeKB = Get-FolderSizeKB -folderPath $fullSubfolderPath
-        if ($VerbMode) { Write-Host "Checking $($subfolder.'Subfolder Name'): Size $folderSizeKB KB" }
+        if ($VerbMode) { Write-Host "Checking $($subfolder.'Subfolder Name'): Size $folderSizeKB KB" }  # Changed from $debugMode
         if ($folderSizeKB -lt $global:sizeLimitKB) {
-            if ($VerbMode) { Write-Host "Skipping empty subfolder: $($subfolder.'Subfolder Name') (Size: $folderSizeKB KB)" }
+            if ($VerbMode) { Write-Host "Skipping empty subfolder: $($subfolder.'Subfolder Name') (Size: $folderSizeKB KB)" }  # Changed from $debugMode
             continue
         }
         $subfolderName = $subfolder."Subfolder Name" -replace " ", "_"
@@ -302,11 +268,9 @@ function Build-FirstRefinedTable {
             "Zip File Name" = if ($matchingZip) { $matchingZip.Name } else { $expectedZip }
         }
     }
-    if ($VerbMode) { Write-Host "Built first refined table with $($refinedTable.Count) entries" }
+    if ($VerbMode) { Write-Host "Built first refined table with $($refinedTable.Count) entries" }  # Changed from $debugMode
     return $refinedTable
 }
-# [Everything above Build-CompressTable remains unchanged]
-
 function Build-CompressTable {
     param ([Parameter(Mandatory=$true)] $zipDecisionTable)
     $platform = Get-PlatformShortName
@@ -381,77 +345,53 @@ function Compress-Folders {
 # Main execution function
 
 function main {
-    $transcriptPath = Join-Path -Path $global:scriptfolder -ChildPath $global:logBaseName
-    try { Start-Transcript -Path $transcriptPath -Force -ErrorAction Stop | Out-Null } catch {}
-
-    # Enhanced validation
-    if (-not $destinationFolder) {
-        Write-Host "Error: destinationFolder must be provided via command line or answer file." -ForegroundColor Red
-        exit 1
-    }
-    if (-not $sourceFolder) {
-        Write-Host "Error: sourceFolder must be provided via command line or answer file when using -sourceFile or default behavior." -ForegroundColor Red
-        exit 1
-    }
-
-    if ($createAnswerFile) {
-        $answerFilePath = if ($createAnswerFile -notmatch '[\\/]') { 
-            Join-Path -Path $global:scriptfolder -ChildPath $createAnswerFile 
-        } else { 
-            $createAnswerFile 
-        }
-        $answerData = [PSCustomObject]@{
-            sourceFolder      = $sourceFolder
-            destinationFolder = $destinationFolder
-            sourceFile        = $sourceFile  # Include in answer file
-            debugMode         = [bool]$debugMode
-            VerbMode          = [bool]$VerbMode
-            keepDuplicates    = [bool]$keepDuplicates
-            CompressionLevel  = $CompressionLevel
-        }
-        try {
-            $answerData | ConvertTo-Json | Out-File -FilePath $answerFilePath -Force -Encoding UTF8 -ErrorAction Stop
-            Write-Host "Created answer file: $answerFilePath" -ForegroundColor Green
-        } catch {
-            Write-Host "Error: Failed to create answer file '$answerFilePath': $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        }
-    }
-
     Write-Host "Welcome to SteamZipper!" -ForegroundColor Cyan
     Write-Host "This script zips your Steam folders. Ensure the storage device of '$destinationFolder' has enough space!" -ForegroundColor Yellow
     Write-Host "Running on $([System.Environment]::MachineName) - $(Get-Date)" -ForegroundColor Green
 
-    Validate-ScriptParameters
-    $global:InitializationTable = Build-InitializationTable
-    if ($null -eq $global:InitializationTable) { Throw "Failed to build InitializationTable" }
-    Set-Variable -Name "InitializationTable" -Value $global:InitializationTable -Scope Global -Option ReadOnly
+    $transcriptPath = Join-Path -Path $global:scriptfolder -ChildPath $global:logBaseName
+    try { Start-Transcript -Path $transcriptPath -Force -ErrorAction Stop | Out-Null } catch {}
 
-    $global:FirstRefinedTable = Build-FirstRefinedTable -initTable $global:InitializationTable
-    if ($null -eq $global:FirstRefinedTable) { Throw "Failed to build FirstRefinedTable" }
-    Set-Variable -Name "FirstRefinedTable" -Value $global:FirstRefinedTable -Scope Global -Option ReadOnly
+    if ($createAnswerFile) {
+        $answerData = [PSCustomObject]@{
+            sourceFolder = $sourceFolder
+            destinationFolder = $destinationFolder
+            debugMode = [bool]$debugMode
+            VerbMode = [bool]$VerbMode
+            keepDuplicates = [bool]$keepDuplicates
+            CompressionLevel = $CompressionLevel
+        }
+        $answerData | ConvertTo-Json | Out-File $createAnswerFile -Force
+        Write-Host "Created answer file: $createAnswerFile"
+    }
 
-    $global:ZipDecisionTable = Build-ZipDecisionTable -refinedTable $global:FirstRefinedTable
-    if ($null -eq $global:ZipDecisionTable) { Throw "Failed to build ZipDecisionTable" }
-    Set-Variable -Name "ZipDecisionTable" -Value $global:ZipDecisionTable -Scope Global -Option ReadOnly
-
-    $compressTable = Build-CompressTable -zipDecisionTable $global:ZipDecisionTable
-    if ($null -eq $compressTable -or $compressTable.Count -eq 0) {
-        Write-Host "Everything is up to date, no changes made" -ForegroundColor Green
-    } else {
+    try {
+        Validate-ScriptParameters
+        if (-not (Test-Path Variable:global:InitializationTable)) {
+            $global:InitializationTable = Build-InitializationTable
+            if ($null -eq $global:InitializationTable) { Throw "Failed to build InitializationTable" }
+            Set-Variable -Name "InitializationTable" -Value $global:InitializationTable -Scope Global -Option ReadOnly
+        }
+        if (-not (Test-Path Variable:global:FirstRefinedTable)) {
+            $global:FirstRefinedTable = Build-FirstRefinedTable -initTable $global:InitializationTable
+            if ($null -eq $global:FirstRefinedTable) { Throw "Failed to build FirstRefinedTable" }
+            Set-Variable -Name "FirstRefinedTable" -Value $global:FirstRefinedTable -Scope Global -Option ReadOnly
+        }
+        if (-not (Test-Path Variable:global:ZipDecisionTable)) {
+            $global:ZipDecisionTable = Build-ZipDecisionTable -refinedTable $global:FirstRefinedTable
+            if ($null -eq $global:ZipDecisionTable) { Throw "Failed to build ZipDecisionTable" }
+            Set-Variable -Name "ZipDecisionTable" -Value $global:ZipDecisionTable -Scope Global -Option ReadOnly
+        }
+        $compressTable = Build-CompressTable -zipDecisionTable $global:ZipDecisionTable
+        # Remove the null check and throw - an empty array is valid
         Compress-Folders -decisionTable $compressTable -keepDuplicates:$keepDuplicates -CompressionLevel $CompressionLevel
+        Write-Host "Script completed successfully" -ForegroundColor Green
+    } catch {
+        Write-Error $_.Exception.Message
+        exit 1
+    } finally {
+        try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {}
     }
-
-    if ($VerbMode) {
-        Write-Host "Initialization Table:"; $global:InitializationTable | Format-Table -AutoSize
-        Write-Host "First Refined Table:"; $global:FirstRefinedTable | Format-Table -AutoSize
-        Write-Host "Zip Decision Table:"; $global:ZipDecisionTable | Format-Table -AutoSize
-        Write-Host "Compress Table:"; $compressTable | Format-Table -AutoSize
-    }
-
-    Write-Host "Script completed successfully" -ForegroundColor Green
-    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {}
 }
 
-
-main
+try { main } catch { Write-Error "Script failed: $($_.Exception.Message)"; exit 1 }

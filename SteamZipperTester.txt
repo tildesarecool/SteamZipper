@@ -1,0 +1,156 @@
+# SteamZipperTester.ps1
+
+$global:scriptfolder = Split-Path -Parent $MyInvocation.MyCommand.Path
+$global:source = 'P:\steamzipper\steam temp storage'
+$global:destination = 'P:\steamzipper\zip test output'
+
+function Reset-TestState {
+    $zipsToRemove = @(
+        "bit_Dungeon_11012024_steam.zip",
+        "bit_Dungeon_II_11012024_steam.zip",
+        "bit_Dungeon_III_11012024_steam.zip",
+        "Dig_Dog_11092024_steam.zip",
+        "Horizon_Chase_01012025_steam.zip",
+        "Ms._PAC-MAN_11012024_steam.zip",
+        "Outzone_11012024_steam.zip",
+        "PAC-MAN_02062025_steam.zip"
+    )
+    foreach ($zip in $zipsToRemove) {
+        Remove-Item -Path "$global:destination\$zip" -Force -ErrorAction SilentlyContinue
+    }
+    Move-Item -Path "$global:destination\deleted\*" -Destination "$global:destination\" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$global:scriptfolder\answer.txt" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$global:scriptfolder\folders.txt" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$global:scriptfolder\transcript.txt" -Force -ErrorAction SilentlyContinue
+    Write-Host "Reset to Ready-to-Test State"
+}
+
+function Run-Test {
+    param (
+        [string]$TestName,
+        [string]$Command,
+        [hashtable]$Expected
+    )
+    Reset-TestState
+    Write-Host "Running test: $TestName"
+    try {
+        # Capture output and errors separately, non-interactive
+        $output = & pwsh -Command $Command -NonInteractive -ErrorAction Stop 2>&1
+        # Convert output to string array for easier checking
+        $outputStr = $output | ForEach-Object { $_ -as [string] }
+        # Check for error messages or non-zero exit code
+        if ($LASTEXITCODE -ne 0 -or ($outputStr -match "Parameter set cannot be resolved|not found, exiting")) {
+            throw "Command failed with exit code ${LASTEXITCODE}: $outputStr"
+        }
+        $transcriptPath = "$global:scriptfolder\transcript.txt"
+        $transcript = if (Test-Path $transcriptPath) { Get-Content $transcriptPath -Raw } else { "No transcript generated" }
+        $result = Verify-Results -Expected $Expected
+        return [PSCustomObject]@{
+            TestName = $TestName
+            Command = $Command
+            Status = if ($result.Passed) { "Pass" } else { "Fail" }
+            Details = $result.Details
+            Transcript = $transcript
+        }
+    } catch {
+        $transcriptPath = "$global:scriptfolder\transcript.txt"
+        $transcript = if (Test-Path $transcriptPath) { Get-Content $transcriptPath -Raw } else { "No transcript" }
+        return [PSCustomObject]@{
+            TestName = $TestName
+            Command = $Command
+            Status = "Fail"
+            Details = "Exception: $($_.Exception.Message)"
+            Transcript = $transcript
+        }
+    }
+}
+
+function Verify-Results {
+    param ([hashtable]$Expected)
+    $details = @()
+    $passed = $true
+
+    if ($Expected.ContainsKey("ZipCount")) {
+        $zips = Get-ChildItem "$global:destination" -File "*.zip"
+        $actualCount = $zips.Count
+        if ($null -eq $Expected.ZipCount) {
+            $details += "Zip count check skipped (expected)"
+        } elseif ($actualCount -eq $Expected.ZipCount) {
+            $details += "Zip count matches: $actualCount"
+        } else {
+            $details += "Expected $($Expected.ZipCount) zips, got $actualCount"
+            $passed = $false
+        }
+    }
+
+    if ($Expected.ContainsKey("AnswerFile") -and $Expected.AnswerFile) {
+        if (Test-Path "$global:scriptfolder\answer.txt") {
+            $details += "Answer file created"
+        } else {
+            $details += "Answer file missing"
+            $passed = $false
+        }
+    }
+
+    if ($Expected.ContainsKey("TableCounts")) {
+        $transcriptPath = "$global:scriptfolder\transcript.txt"
+        if (Test-Path $transcriptPath) {
+            $transcript = Get-Content $transcriptPath -Raw
+            foreach ($table in $Expected.TableCounts.GetEnumerator()) {
+                $tableName = $table.Key
+                $expectedCount = $table.Value
+                if ($transcript -match "Built $tableName table with (\d+) entries") {
+                    $actualCount = [int]$matches[1]
+                    if ($actualCount -eq $expectedCount) {
+                        $details += "$tableName table count matches: $actualCount"
+                    } else {
+                        $details += "Expected $expectedCount $tableName entries, got $actualCount"
+                        $passed = $false
+                    }
+                } else {
+                    $details += "$tableName table count not found in transcript"
+                    $passed = $false
+                }
+            }
+        } else {
+            $details += "Transcript missing for table count check"
+            $passed = $false
+        }
+    }
+
+    return @{ Passed = $passed; Details = $details }
+}
+
+# Main execution
+$results = @()
+
+$results += Run-Test -TestName "CreateAnswerFile" `
+    -Command "& { .\steamzipper.ps1 -sourceFolder '$global:source' -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest -createAnswerFile:answer.txt }" `
+    -Expected @{ ZipCount = 14; AnswerFile = $true; TableCounts = @{ "initialization" = 11; "first refined" = 9; "zip decision" = 9; "compress" = 8 } }
+
+$results += Run-Test -TestName "BasicRun" `
+    -Command "& { .\steamzipper.ps1 -sourceFolder '$global:source' -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }" `
+    -Expected @{ ZipCount = 14; TableCounts = @{ "initialization" = 11; "first refined" = 9; "zip decision" = 9; "compress" = 8 } }
+
+$results += Run-Test -TestName "ConflictingParams" `
+    -Command "& { .\steamzipper.ps1 -sourceFolder '$global:source' -destinationFolder '$global:destination' -answerFile:answer.txt }" `
+    -Expected @{ ZipCount = $null }
+
+$results += Run-Test -TestName "MissingSourceFolder" `
+    -Command "& { .\steamzipper.ps1 -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }" `
+    -Expected @{ ZipCount = $null }
+
+$results += Run-Test -TestName "InvalidSourceFolder" `
+    -Command "& { .\steamzipper.ps1 -sourceFolder 'P:\nonexistent\path' -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }" `
+    -Expected @{ ZipCount = $null }
+    
+Write-Host "Results count: $($results.Count)"
+if ($results.Count -eq 0) { Write-Host "Warning: No test results collected" }
+
+try {
+    Remove-Item -Path "$global:scriptfolder\test_results.txt" -Force -ErrorAction SilentlyContinue
+    $results | ConvertTo-Json -Depth 3 | Out-File "$global:scriptfolder\test_results.txt" -Force -ErrorAction Stop
+    Write-Host "Tests complete. Results saved to $global:scriptfolder\test_results.txt"
+} catch {
+    Write-Host "Failed to save test_results.txt: $($_.Exception.Message)"
+}

@@ -1,17 +1,17 @@
 
 
 
+Re-run Tests: Reset to RTTSR, then re-run Tests 1, 2, 3, 5, 8, and 9
 
 
 
+what if anything to do about interupted jobs/partial zips
 
 
 
-
-
-
-
-
+validate running on PS 7.x before continuing to script
+or just do a bool with if [-2] to see if current version of PS will support it?
+either way something to do up front
 
 
 
@@ -44,13 +44,20 @@ or the ps equivalent
 this text file with one folder per line for selective compression could then be utlized in a hypothetical selective decompression companion script
 
 
+16:35 3/13/2025
 
+notes: running with empty string for answer file:
+ pwsh -command '& { .\steamzipper.ps1 -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output" -createAnswerFile ""  }'
+script just runs normally, to extra information for the user
 
+running with no file and no file name or quotes at all
+pwsh -command '& { .\steamzipper.ps1 -sourceFolder "P:\steamzipper\steam temp storage" -destinationFolder "P:\steamzipper\zip test output" -createAnswerFile   }'
 
+is maybe hard to follow error
+steamzipper.ps1: Missing an argument for parameter 'createAnswerFile'. Specify a parameter of type 'System.String' and try again.
+but quits immeidately
 
-
-
-
+grok suggested a default json file (answer.json?) when no is specified. may have to come back to that
 
 
 

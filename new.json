@@ -1,0 +1,9 @@
+{
+  "sourceFolder": "P:\\steamzipper\\steam temp storage",
+  "destinationFolder": "P:\\steamzipper\\zip test output",
+  "sourceFile": "",
+  "debugMode": false,
+  "VerbMode": false,
+  "keepDuplicates": false,
+  "CompressionLevel": "Optimal"
+}

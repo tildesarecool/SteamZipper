@@ -66,21 +66,33 @@ Prior versions:
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
 - really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for the compress-archive cmdlet such as  7zip, winrar or some other utility. 
 - implement a what-if parameter that shows what operations would and in a perfect world an estimate of how much disk space that would require and how much appare space there is on the destination storage device
-- create a version (or refactor, whatever) of it to exist on the PS packages site
+- create a version (or refactor, whatever) of it to exist on the PS packages site (gallery)
   - I'm not paying for a certificate though
-- implement way of provided a text file list of folders to be compressed in place of destination path [done]
-- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder [done]
+  ---
+- implement way of provided a text file list of folders to be compressed in place of destination path **[done]**
+- a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder **[done]**
 - more/better error checking and dealing with the errors (effectively done)
-- Some semblance of dealing with duplicate zips via parameter or whatever [done]
-- created config file or "answer file" for repeat running [done]
-- - an argument to select a compression level besides the default [done]
+- Some semblance of dealing with duplicate zips via parameter or whatever **[done]**
+- created config file or "answer file" for repeat running **[done]**
+- - an argument to select a compression level besides the default **[done]**
 
 Might be a little much just for a thing that zips some folders.
 
 
 ---
 
-### 9 March 2025
+### 14 March 2025
+
+Well. A few things have changed since that last updated. 
+
+Firstly my LLM assistant couldn't deal with the regression testing script so I've abandoned that for now. If I go back to that I'll write it myself from scratch (e.g. no LLM help).
+
+Secondly I ended up goback to an old version of the script. Well slightly older. I just had re-add the createAnswerfile/answerfile parameters and put the folders text file list back in. So I lost relatively little. It's my own fault for using an LLM.
+
+Those three features (create answer file, use answer file and used folder text file as source) should all be added back in now. I haven't thoroughly tested them yet. Just enough to see they work in at least one circumstance.
+
+
+### 10 March 2025
 
 - finally got a milestone for a working version of the regression test script. This script ended up with static paths and file name lists so it would require editing if someone else wanted to try to use it for some reason.
 

@@ -34,12 +34,9 @@ function Run-Test {
     Reset-TestState
     Write-Host "Running test: $TestName"
     try {
-        # Capture output and errors separately
-        $output = & pwsh -Command $Command -ErrorAction Stop 2>&1
-        # Convert output to string array for easier checking
+        $output = & pwsh -Command $Command -NonInteractive -ErrorAction Stop 2>&1
         $outputStr = $output | ForEach-Object { $_ -as [string] }
-        # Check for error messages or non-zero exit code
-        if ($LASTEXITCODE -ne 0 -or ($outputStr -match "Parameter set cannot be resolved")) {
+        if ($LASTEXITCODE -ne 0 -or ($outputStr -match "Error:.*exiting|Cannot overwrite variable")) {
             throw "Command failed with exit code ${LASTEXITCODE}: $outputStr"
         }
         $transcriptPath = "$global:scriptfolder\transcript.txt"
@@ -74,7 +71,7 @@ function Verify-Results {
         $zips = Get-ChildItem "$global:destination" -File "*.zip"
         $actualCount = $zips.Count
         if ($null -eq $Expected.ZipCount) {
-            $details += "Zip count check skipped (expected null)"
+            $details += "Zip count check skipped (expected)"
         } elseif ($actualCount -eq $Expected.ZipCount) {
             $details += "Zip count matches: $actualCount"
         } else {
@@ -92,6 +89,32 @@ function Verify-Results {
         }
     }
 
+    if ($Expected.ContainsKey("TableCounts")) {
+        $transcriptPath = "$global:scriptfolder\transcript.txt"
+        if (Test-Path $transcriptPath) {
+            $transcript = Get-Content $transcriptPath -Raw
+            foreach ($table in $Expected.TableCounts.GetEnumerator()) {
+                $tableName = $table.Key
+                $expectedCount = $table.Value
+                if ($transcript -match "Built $tableName table with (\d+) entries") {
+                    $actualCount = [int]$matches[1]
+                    if ($actualCount -eq $expectedCount) {
+                        $details += "$tableName table count matches: $actualCount"
+                    } else {
+                        $details += "Expected $expectedCount $tableName entries, got $actualCount"
+                        $passed = $false
+                    }
+                } else {
+                    $details += "$tableName table count not found in transcript"
+                    $passed = $false
+                }
+            }
+        } else {
+            $details += "Transcript missing for table count check"
+            $passed = $false
+        }
+    }
+
     return @{ Passed = $passed; Details = $details }
 }
 
@@ -100,16 +123,24 @@ $results = @()
 
 $results += Run-Test -TestName "CreateAnswerFile" `
     -Command "& { .\steamzipper.ps1 -sourceFolder '$global:source' -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest -createAnswerFile:answer.txt }" `
-    -Expected @{ ZipCount = 14; AnswerFile = $true }
+    -Expected @{ ZipCount = 14; AnswerFile = $true; TableCounts = @{ "initialization" = 14; "first refined" = 9; "zip decision" = 9; "compress" = 8 } }
 
-$results += Run-Test -TestName "BasicRun" `
+    $results += Run-Test -TestName "BasicRun" `
     -Command "& { .\steamzipper.ps1 -sourceFolder '$global:source' -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }" `
-    -Expected @{ ZipCount = 14 }
-
+    -Expected @{ ZipCount = 14; TableCounts = @{ "initialization" = 14; "first refined" = 9; "zip decision" = 9; "compress" = 8 } }
+    
 $results += Run-Test -TestName "ConflictingParams" `
     -Command "& { .\steamzipper.ps1 -sourceFolder '$global:source' -destinationFolder '$global:destination' -answerFile:answer.txt }" `
     -Expected @{ ZipCount = $null }
 
+$results += Run-Test -TestName "MissingSourceFolder" `
+    -Command "& { .\steamzipper.ps1 -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }" `
+    -Expected @{ ZipCount = $null }
+
+$results += Run-Test -TestName "InvalidSourceFolder" `
+    -Command "& { .\steamzipper.ps1 -sourceFolder 'P:\nonexistent\path' -destinationFolder '$global:destination' -debugMode -VerbMode -keepDuplicates -CompressionLevel Fastest }" `
+    -Expected @{ ZipCount = $null }
+    
 Write-Host "Results count: $($results.Count)"
 if ($results.Count -eq 0) { Write-Host "Warning: No test results collected" }
 
