@@ -91,6 +91,7 @@ Secondly I ended up goback to an old version of the script. Well slightly older.
 
 Those three features (create answer file, use answer file and used folder text file as source) should all be added back in now. I haven't thoroughly tested them yet. Just enough to see they work in at least one circumstance.
 
+I also added a PS version detection line to make sure the script is run only in PS 7.x and later.
 
 ### 10 March 2025
 

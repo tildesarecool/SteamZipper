@@ -1,10 +1,14 @@
 #pwsh -command '& { .\hashtable_build.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode }'
 
+# Version check at the very top
+
+#pwsh -command '& { .\hashtable_build.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode }'
+
 [CmdletBinding(DefaultParameterSetName="Manual")]
 param (
     [Parameter(ParameterSetName="Manual")][string]$sourceFolder,
     [Parameter(ParameterSetName="Manual")][string]$destinationFolder,
-    [Parameter(ParameterSetName="Manual")][string]$sourceFile,  # Already present, no change
+    [Parameter(ParameterSetName="Manual")][string]$sourceFile,
     [Parameter(ParameterSetName="Manual")][switch]$debugMode,
     [Parameter(ParameterSetName="Manual")][switch]$VerbMode,
     [Parameter(ParameterSetName="Manual")][switch]$keepDuplicates,
@@ -15,7 +19,12 @@ param (
 
 # Remove this check since AnswerFile set is gone
 # if ($PSCmdlet.ParameterSetName -eq "AnswerFile" -and -not $answerFile) { ... }
-
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host "Error: This script requires PowerShell 7 or later. You are running PowerShell $($PSVersionTable.PSVersion.ToString())." -ForegroundColor Red
+    Write-Host "Please upgrade to PowerShell 7 or higher. Download it from: https://aka.ms/powershell" -ForegroundColor Yellow
+    Write-Host "Exiting now." -ForegroundColor Red
+    exit 1
+}
 
 # Define immutable global variables
 if (-not (Test-Path Variable:\maxJobsDefine)) {
