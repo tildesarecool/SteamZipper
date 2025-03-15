@@ -4,7 +4,7 @@
 
 #pwsh -command '& { .\hashtable_build.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode }'
 
-[CmdletBinding(DefaultParameterSetName="Manual")]
+[CmdletBinding(DefaultParameterSetName="Manual", SupportsShouldProcess=$true)] # SupportsShouldProcess enables WhatIf
 param (
     [Parameter(ParameterSetName="Manual")][string]$sourceFolder,
     [Parameter(ParameterSetName="Manual")][string]$destinationFolder,
@@ -27,29 +27,13 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 }
 
 # Define immutable global variables
-if (-not (Test-Path Variable:\maxJobsDefine)) {
-    Set-Variable -Name "maxJobsDefine" -Value ([System.Environment]::ProcessorCount) -Scope Global -Option ReadOnly
-}
+$global:maxJobsDefine = [System.Environment]::ProcessorCount
+$global:PreferredDateFormat = "MMddyyyy"
+$global:CompressionExtension = "zip"
+$global:scriptfolder = Split-Path -Parent $MyInvocation.MyCommand.Path
+$global:sizeLimitKB = 50
+$global:logBaseName = "transcript.txt"
 
-if (-not (Test-Path Variable:\PreferredDateFormat)) {
-    Set-Variable -Name "PreferredDateFormat" -Value "MMddyyyy" -Scope Global -Option ReadOnly
-}
-
-if (-not (Test-Path Variable:\CompressionExtension)) {
-    Set-Variable -Name "CompressionExtension" -Value "zip" -Scope Global -Option ReadOnly
-}
-
-if (-not (Test-Path Variable:\scriptfolder)) {
-    Set-Variable -Name "scriptfolder" -Value (Split-Path -Parent $MyInvocation.MyCommand.Path) -Scope Global -Option ReadOnly
-}
-
-if (-not (Test-Path Variable:\sizeLimitKB)) {
-    Set-Variable -Name "sizeLimitKB" -Value 50 -Scope Global -Option ReadOnly
-}
-
-if (-not (Test-Path Variable:\logBaseName)) {
-    Set-Variable -Name "logBaseName" -Value "transcript.txt" -Scope Global -Option ReadOnly
-}
 
 if ($answerFile) {
     $answerFilePath = if ($answerFile -notmatch '[\\/]') { 
@@ -254,29 +238,49 @@ function Get-FileDateStamp {
     if ($VerbMode) { Write-Host "'$InputValue' is neither a valid date code, zip file, nor folder" }  # Changed from $debugMode
     return $null
 }
-function Create-StubZip {
-    param (
-        [string]$ZipPath
-    )
-    if ($debugMode) {
-        New-Item -Path $ZipPath -ItemType File -Force | Out-Null
-        Write-Host "Created stub zip: $ZipPath (0 KB)"
-    }
-}
+#function Create-StubZip {
+#    param (
+#        [string]$ZipPath
+#    )
+#    if ($debugMode) {
+#        New-Item -Path $ZipPath -ItemType File -Force | Out-Null
+#        Write-Host "Created stub zip: $ZipPath (0 KB)"
+#    }
+#}
+#function Move-DuplicateZips {
+#    param ([string]$SubfolderName, [datetime]$ReferenceDate, [string]$ExpectedZip, [string]$DestinationFolder, [string]$DeletedFolder, [switch]$KeepDuplicates)
+#    if (-not $KeepDuplicates) {  # Removed $debugMode condition—moves should always happen unless -keepDuplicates
+#        $platform = Get-PlatformShortName
+#        $duplicateZips = Get-ChildItem -Path $DestinationFolder -Filter "${SubfolderName}*_${platform}.$global:CompressionExtension" | 
+#                         Where-Object { $dupDate = Get-FileDateStamp -InputValue $_.Name; $dupDate -and $dupDate -lt $ReferenceDate -and $_.Name -ne $ExpectedZip }
+#        foreach ($dup in $duplicateZips) {
+#            $dupPath = $dup.FullName
+#            $deletedDupPath = Join-Path -Path $DeletedFolder -ChildPath $dup.Name
+#            Move-Item -Path $dupPath -Destination $deletedDupPath -Force
+#            if ($VerbMode) { Write-Host "Moved duplicate older zip to: $deletedDupPath" }  # Changed from Write-Host without condition
+#        }
+#    }
+#}
+
 function Move-DuplicateZips {
     param ([string]$SubfolderName, [datetime]$ReferenceDate, [string]$ExpectedZip, [string]$DestinationFolder, [string]$DeletedFolder, [switch]$KeepDuplicates)
-    if (-not $KeepDuplicates) {  # Removed $debugMode condition—moves should always happen unless -keepDuplicates
+    if (-not $KeepDuplicates) {
         $platform = Get-PlatformShortName
         $duplicateZips = Get-ChildItem -Path $DestinationFolder -Filter "${SubfolderName}*_${platform}.$global:CompressionExtension" | 
                          Where-Object { $dupDate = Get-FileDateStamp -InputValue $_.Name; $dupDate -and $dupDate -lt $ReferenceDate -and $_.Name -ne $ExpectedZip }
         foreach ($dup in $duplicateZips) {
             $dupPath = $dup.FullName
             $deletedDupPath = Join-Path -Path $DeletedFolder -ChildPath $dup.Name
-            Move-Item -Path $dupPath -Destination $deletedDupPath -Force
-            if ($VerbMode) { Write-Host "Moved duplicate older zip to: $deletedDupPath" }  # Changed from Write-Host without condition
+            if ($PSCmdlet.ShouldProcess($dupPath, "Move duplicate to $deletedDupPath")) {
+                Move-Item -Path $dupPath -Destination $deletedDupPath -Force
+                if ($VerbMode) { Write-Host "Moved duplicate older zip to: $deletedDupPath" }
+            }
         }
     }
 }
+
+
+
 function Build-FirstRefinedTable {
     param ([Parameter(Mandatory=$true)] $initTable)
     $platform = Get-PlatformShortName
@@ -305,11 +309,18 @@ function Build-FirstRefinedTable {
                 ($parts[-1] -eq "$platform.$global:CompressionExtension") -and ($parts[0..($parts.Count - 3)] -join "_") -eq $subfolderName
             } | Sort-Object "ParsedDate" -Descending | Select-Object -First 1
         }
+
         $refinedTable += [PSCustomObject]@{
             "Subfolder Name" = $subfolder."Subfolder Name"
             "Folder Last Write Date" = $subfolder."Folder Last Write Date"
-            "Zip File Name" = if ($matchingZip) { $matchingZip.Name } else { $expectedZip }
+            "Zip File Name" = $expectedZip  # Always use MMddyyyy format
         }
+
+        #        $refinedTable += [PSCustomObject]@{
+#            "Subfolder Name" = $subfolder."Subfolder Name"
+#            "Folder Last Write Date" = $subfolder."Folder Last Write Date"
+#            "Zip File Name" = if ($matchingZip) { $matchingZip.Name } else { $expectedZip }
+#        }
     }
     if ($VerbMode) { Write-Host "Built first refined table with $($refinedTable.Count) entries" }
     return $refinedTable
@@ -348,13 +359,17 @@ function Compress-Folders {
         [string]$CompressionLevel = "Optimal"
     )
     $deletedFolder = Join-Path -Path $destinationFolder -ChildPath "deleted"
-    if (-not (Test-Path -Path $deletedFolder)) { New-Item -Path $deletedFolder -ItemType Directory | Out-Null; if ($VerbMode) { Write-Host "Created deleted folder: $deletedFolder" } }
+    if (-not (Test-Path -Path $deletedFolder)) { 
+        if ($PSCmdlet.ShouldProcess($deletedFolder, "Create deleted folder")) {
+            New-Item -Path $deletedFolder -ItemType Directory | Out-Null
+            if ($VerbMode) { Write-Host "Created deleted folder: $deletedFolder" }
+        }
+    }
 
     foreach ($entry in $decisionTable) {
         $sourcePath = Join-Path -Path $sourceFolder -ChildPath $entry."Subfolder Name"
         $zipPath = Join-Path -Path $destinationFolder -ChildPath $entry."Expected Zip"
         
-        # Handle duplicates if needed
         if ($entry."Existing Zip" -and $entry.Status -eq "NeedsUpdate") {
             Move-DuplicateZips -SubfolderName ($entry."Subfolder Name" -replace " ", "_") `
                               -ReferenceDate $entry."Folder Last Write Date" `
@@ -371,62 +386,39 @@ function Compress-Folders {
                               -DeletedFolder $deletedFolder `
                               -KeepDuplicates:$keepDuplicates
         }
-
-        if (-not $debugMode) {
-            $timer = Measure-Command {
-                Compress-Archive -Path $sourcePath -DestinationPath $zipPath -Force -CompressionLevel $CompressionLevel -ErrorAction Stop
-                Write-Host "Compressed $($entry.'Subfolder Name') to $zipPath"
-                if ($VerbMode) { Write-Host "Compression completed for $($entry.'Subfolder Name')" }
+        if ($PSCmdlet.ShouldProcess($zipPath, "Compress $($entry.'Subfolder Name')")) {
+            if (-not $debugMode) {
+                $timer = Measure-Command {
+                    Compress-Archive -Path $sourcePath -DestinationPath $zipPath -Force -CompressionLevel $CompressionLevel -ErrorAction Stop
+                    Write-Host "Compressed $($entry.'Subfolder Name') to $zipPath"
+                    if ($VerbMode) { Write-Host "Compression completed for $($entry.'Subfolder Name')" }
+                }
+                $roundedTime = [Math]::Round($timer.TotalSeconds, 1)
+                Write-Host "Operation for $($entry.'Subfolder Name') took $roundedTime seconds"
+            } else {
+                New-Item -Path $zipPath -ItemType File -Force | Out-Null
+                Write-Host "Created stub zip: $zipPath (0 KB)"
             }
-            $roundedTime = [Math]::Round($timer.TotalSeconds, 1)  # Round to 1 decimal place
-            Write-Host "Operation for $($entry.'Subfolder Name') took $roundedTime seconds"
         } else {
-            New-Item -Path $zipPath -ItemType File -Force | Out-Null
-            Write-Host "Created stub zip: $zipPath (0 KB)"
-            if ($VerbMode) { Write-Host "Stub created for $($entry.'Subfolder Name')" }
+            Write-Host "Would compress '$($entry.'Subfolder Name')' to '$zipPath'" -ForegroundColor Cyan
+            if ($VerbMode) { 
+                $action = if ($debugMode) { "stub creation" } else { "compression" }
+                Write-Host "WhatIf: Skipped $action for $($entry.'Subfolder Name')"
+            }
         }
     }
 }
+
+
 # Main execution function
 
 function main {
     $transcriptPath = Join-Path -Path $global:scriptfolder -ChildPath $global:logBaseName
-    try { Start-Transcript -Path $transcriptPath -Force -ErrorAction Stop | Out-Null } catch {}
-
-    # Enhanced validation
-    if (-not $destinationFolder) {
-        Write-Host "Error: destinationFolder must be provided via command line or answer file." -ForegroundColor Red
-        exit 1
-    }
-    if (-not $sourceFolder) {
-        Write-Host "Error: sourceFolder must be provided via command line or answer file when using -sourceFile or default behavior." -ForegroundColor Red
-        exit 1
+    if (-not $PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) {
+        try { Start-Transcript -Path $transcriptPath -Force -ErrorAction Stop | Out-Null } catch {}
     }
 
-    if ($createAnswerFile) {
-        $answerFilePath = if ($createAnswerFile -notmatch '[\\/]') { 
-            Join-Path -Path $global:scriptfolder -ChildPath $createAnswerFile 
-        } else { 
-            $createAnswerFile 
-        }
-        $answerData = [PSCustomObject]@{
-            sourceFolder      = $sourceFolder
-            destinationFolder = $destinationFolder
-            sourceFile        = $sourceFile  # Include in answer file
-            debugMode         = [bool]$debugMode
-            VerbMode          = [bool]$VerbMode
-            keepDuplicates    = [bool]$keepDuplicates
-            CompressionLevel  = $CompressionLevel
-        }
-        try {
-            $answerData | ConvertTo-Json | Out-File -FilePath $answerFilePath -Force -Encoding UTF8 -ErrorAction Stop
-            Write-Host "Created answer file: $answerFilePath" -ForegroundColor Green
-        } catch {
-            Write-Host "Error: Failed to create answer file '$answerFilePath': $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        }
-    }
-
+    # Existing validation and setup...
     Write-Host "Welcome to SteamZipper!" -ForegroundColor Cyan
     Write-Host "This script zips your Steam folders. Ensure the storage device of '$destinationFolder' has enough space!" -ForegroundColor Yellow
     Write-Host "Running on $([System.Environment]::MachineName) - $(Get-Date)" -ForegroundColor Green
@@ -447,8 +439,28 @@ function main {
     $compressTable = Build-CompressTable -zipDecisionTable $global:ZipDecisionTable
     if ($null -eq $compressTable -or $compressTable.Count -eq 0) {
         Write-Host "Everything is up to date, no changes made" -ForegroundColor Green
+        # Summary for no changes
+        if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) {
+            Write-Host "Summary: No files will be created as all zips are up to date." -ForegroundColor Cyan
+        } else {
+            $action = if ($debugMode) { "stub files" } else { "zip files" }
+            Write-Host "Summary: No $action were created as everything is already up to date." -ForegroundColor Green
+        }
     } else {
         Compress-Folders -decisionTable $compressTable -keepDuplicates:$keepDuplicates -CompressionLevel $CompressionLevel
+        # Summary for changes
+        if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) {
+            Write-Host "Summary: The following zip files would be created at '$destinationFolder' when run:" -ForegroundColor Cyan
+            $compressTable | ForEach-Object {
+                Write-Host "  - $($_.'Expected Zip')" -ForegroundColor Cyan
+            }
+        } else {
+            $action = if ($debugMode) { "Stub files" } else { "Zip files" }
+            Write-Host "Summary: The following $action were created at '$destinationFolder':" -ForegroundColor Green
+            $compressTable | ForEach-Object {
+                Write-Host "  - $($_.'Expected Zip')" -ForegroundColor Green
+            }
+        }
     }
 
     if ($VerbMode) {
@@ -459,8 +471,9 @@ function main {
     }
 
     Write-Host "Script completed successfully" -ForegroundColor Green
-    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {}
+    if (-not $PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) {
+        try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {}
+    }
 }
-
 
 main

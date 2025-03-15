@@ -6,10 +6,12 @@ I'm not assuming this exact script hasn't already been done in many other langua
 ### Current Script status: Work - Minimum viable functionality
 (the flagged "release" is good)
 
-I've decided to make the current version a new "alpha build" and also just use the script name ```steamzipper.ps1```.
+The current 15 March version (not tagged as a version yet) works with WhatIf. I haven't thuroughly tested it yet though. It won't be hard to find a combination of parameters that breaks the script. So...don't do that. Or fix it. 
+
+I've decided to make a version a new "alpha build" and also just use the script name ```steamzipper.ps1```.
 
 USAGE:
-```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> <optional: createAnswerFile> <optional: answerFile:answer.txt>```
+```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> [<optional: createAnswerFile> | <optional: answerFile:answer.txt>] <optional: WhatIf> ```
 
 note: this is how to use a generated answer file
 ```pwsh -command '& { .\steamzipper.ps1 -answerFile:answer.txt }'```
@@ -80,6 +82,18 @@ Might be a little much just for a thing that zips some folders.
 
 
 ---
+### 15 March 2025
+
+I was able to get -WhatIf properly working (probably?) and also tested WhatIf with a combination of different parameters such as debug and verbmode (which don't really matter to any one but developers).
+
+I also realized I could just redirect console output to a text the same I could with CMD. Not sure why I didn't try that sooner.
+
+So this command
+```pwsh -Command ".\steamzipper.ps1 -sourceFolder 'P:\steamzipper\steam temp storage' -destinationFolder 'P:\steamzipper\zip test output' -WhatIf -debugMode -VerbMode" > .\whatif-debug-output.txt```
+
+works perfectly well. I need this because -WhatIf doesn't generate the transcript file as the other parameters do and I still need the console output for copy/pasting and readibility. 
+
+
 
 ### 14 March 2025
 

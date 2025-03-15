@@ -34,7 +34,9 @@ and use a -noPrompt to not pause to press a key
 
 also a way to limit max size of folders. like back up only folders less than 20 gigs or 50 gigs
 
-
+random idea: when compress-archive finishes and return a "success" 0 or whatever, do a md5/whatever hash on it and keep that
+well it was supposed to be for catching zips that are only part way created but a patched folder would produce a zip with a different 
+hash anyway so not that great of an idea
 
 
 also feed in a bare list of folder names only back up that list?
@@ -62,7 +64,9 @@ grok suggested a default json file (answer.json?) when no is specified. may have
 
 
 
-
+13:40 3/14/2025
+i think the -createnswerfile is actually broken. i'm not sure it really takes the parameters used and puts them into a
+anserfile txt file, i think it defaults to a set of parameters. It's fine. 
 
 
 
