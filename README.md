@@ -3,7 +3,7 @@ Loop through steam games folder, zipping each folder and giving it a unique name
 
 I'm not assuming this exact script hasn't already been done in many other languages many, many times before. I'm just doing this to try and backup my steam games. And practice PS scripting.
 
-### Current Script status: Work - Minimum viable functionality
+### Current Script status: Working - easy to break, very unstable
 (the flagged "release" is good)
 
 The current 15 March version (not tagged as a version yet) works with WhatIf. I haven't thuroughly tested it yet though. It won't be hard to find a combination of parameters that breaks the script. So...don't do that. Or fix it. 
@@ -14,7 +14,9 @@ New feature as of March 15th!
 Using the parallel parameter *should* zip multiple folders at the same time. I just got it working so I'm just assuming a mild breeze will break it. But it's there to try.
 
 USAGE:
-```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> [<optional: createAnswerFile> | <optional: answerFile:answer.txt>] <optional: WhatIf> <optional: parallel> ```
+```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> [<optional: createAnswerFile> | <optional: answerFile:answer.txt>] <optional: WhatIf> <optional: parallel> <optional: MaxJobs [int < 16]>```
+
+Note: **Parallel and MaxJobs are considered experimental right now: use at your own risk.**
 
 note: this is how to use a generated answer file
 ```pwsh -command '& { .\steamzipper.ps1 -answerFile:answer.txt }'```
@@ -66,14 +68,16 @@ Prior versions:
 
 ### Feature Wishlist 
 
-- Zipping multiple files at once using a job pool (like dogpool but uglier)
 - A companion script that as a batch or selectively on unzips the games to a destination
 - Some form of UI, at least as an option, would be nice. I'll just use the one that comes with Python. Or the thing I just found out about, [PwshSpectreConsole](https://spectreconsole.net/).
 - really far off: make what is used for compressing the folders more modular e.g. you can use a PS replacement for the compress-archive cmdlet such as  7zip, winrar or some other utility. 
-- implement a what-if parameter that shows what operations would and in a perfect world an estimate of how much disk space that would require and how much appare space there is on the destination storage device
 - create a version (or refactor, whatever) of it to exist on the PS packages site (gallery)
   - I'm not paying for a certificate though
   ---
+- Zipping multiple files at once using a job pool (like dogpool but uglier) **[done]**
+- implement a what-if parameter that shows what operations would and in a perfect world an 
+estimate of how much disk space that would require and how much appare space there is on the 
+destination storage device **[done]**
 - implement way of provided a text file list of folders to be compressed in place of destination path **[done]**
 - a log file of success failure of items like creating the destination folder it doesn't exist successfully zip a folder **[done]**
 - more/better error checking and dealing with the errors (effectively done)
@@ -85,6 +89,21 @@ Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 16 March 2025
+
+I've added a -maxjobs parameter. This is so you can run with a smaller number of jobs then your CPU has cores/threads. 
+
+I should mention in testing this my PC actually powered itself all the way off. The Windows system event log didn't really provide any hints about what exactly happened but since that was the last thing I ran before it powered off I assume it's related. 
+
+So try this as your own risk. Or using parallel at at your own risk, really. This command is run on an 8-core CPU. So it should be safe. 
+
+```pwsh -Command "Measure-Command { .\steamzipper.ps1 -sourceFolder 'P:\steamzipper\steam temp storage' -destinationFolder 'P:\steamzipper\zip test output' -VerbMode -Parallel -MaxJobs 4  } ```
+
+And ```-MaxJobs 12``` should be safe as well. Since it's supposed to drop back to the default number cores/threads of the CPU, 8 in my case.
+
+
+
 ### 15 March 2025
 
 I was able to get -WhatIf properly working (probably?) and also tested WhatIf with a combination of different parameters such as debug and verbmode (which don't really matter to any one but developers).

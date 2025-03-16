@@ -111,3 +111,12 @@ Get-ChildItem -Path "P:\steamzipper\steam temp storage" | Select-Object Name, La
 Get-ChildItem -Path "P:\steamzipper\zip test output" | Select-Object Name >> .\source-dest-content-reset.txt
 
 Get-ChildItem -Path "P:\steamzipper\zip test output\deleted\" | Select-Object Name
+
+
+
+
+i did RTTSR and updated script file
+
+ran test
+pwsh -Command "Measure-Command { .\steamzipper.ps1 -sourceFolder 'P:\steamzipper\steam temp storage' -destinationFolder 'P:\steamzipper\zip test output' -VerbMode -Parallel -MaxJobs 12 } | Format-Table TotalSeconds"
+

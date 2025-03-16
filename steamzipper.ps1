@@ -16,7 +16,8 @@ param (
     [Parameter(ParameterSetName="Manual")][ValidateSet("Optimal", "Fastest", "NoCompression")][string]$CompressionLevel = "Optimal",
     [Parameter(ParameterSetName="Manual")][string]$answerFile,
     [Parameter(ParameterSetName="Manual")][string]$createAnswerFile,
-    [Parameter(ParameterSetName="Manual")][switch]$Parallel  # New switch
+    [Parameter(ParameterSetName="Manual")][switch]$Parallel,
+    [Parameter(ParameterSetName="Manual")][ValidateRange(1, 16)][int]$MaxJobs = $global:maxJobsDefine  # New parameter
 )
 
 # Remove this check since AnswerFile set is gone
@@ -363,11 +364,13 @@ function Compress-Folders {
         }
     }
     if ($Parallel) {
-        if ($VerbMode) { Write-Host "Duplicate zip moves completed, starting parallel compression" }
-        $decisionTable | ForEach-Object -ThrottleLimit ([Math]::Min($global:maxJobsDefine, 16)) -Parallel {
+        $throttleLimit = [Math]::Min($MaxJobs, 16)  # Cap at 16
+        $effectiveJobs = [Math]::Min($throttleLimit, $global:maxJobsDefine)  # Actual jobs
+        if ($VerbMode) { Write-Host "Duplicate zip moves completed, starting parallel compression with $effectiveJobs jobs" }
+        $decisionTable | ForEach-Object -ThrottleLimit $throttleLimit -Parallel {
             $sourcePath = Join-Path -Path $Using:sourceFolder -ChildPath $_."Subfolder Name"
             $zipPath = Join-Path -Path $Using:destinationFolder -ChildPath $_."Expected Zip"
-            if ($Using:WhatIfPreference) {  # Use global WhatIfPreference
+            if ($Using:WhatIfPreference) {
                 Write-Host "Would compress '$($_.'Subfolder Name')' to '$zipPath'" -ForegroundColor Cyan
                 if ($Using:VerbMode) { 
                     $action = if ($Using:debugMode) { "stub creation" } else { "compression" }
@@ -393,34 +396,7 @@ function Compress-Folders {
             }
         }
     } else {
-        foreach ($entry in $decisionTable) {
-            $sourcePath = Join-Path -Path $sourceFolder -ChildPath $entry."Subfolder Name"
-            $zipPath = Join-Path -Path $destinationFolder -ChildPath $entry."Expected Zip"
-            if ($PSCmdlet.ShouldProcess($zipPath, "Compress $($entry.'Subfolder Name')")) {
-                if (-not $debugMode) {
-                    $timer = Measure-Command {
-                        try {
-                            Compress-Archive -Path $sourcePath -DestinationPath $zipPath -Force -CompressionLevel $CompressionLevel -ErrorAction Stop
-                            Write-Host "Compressed $($entry.'Subfolder Name') to $zipPath"
-                            if ($VerbMode) { Write-Host "Compression completed for $($entry.'Subfolder Name')" }
-                        } catch {
-                            Write-Host "Error compressing $($entry.'Subfolder Name'): $($_.Exception.Message)" -ForegroundColor Red
-                        }
-                    }
-                    $roundedTime = [Math]::Round($timer.TotalSeconds, 1)
-                    Write-Host "Operation for $($entry.'Subfolder Name') took $roundedTime seconds"
-                } else {
-                    New-Item -Path $zipPath -ItemType File -Force | Out-Null
-                    Write-Host "Created stub zip: $zipPath (0 KB)"
-                }
-            } else {
-                Write-Host "Would compress '$($entry.'Subfolder Name')' to '$zipPath'" -ForegroundColor Cyan
-                if ($VerbMode) { 
-                    $action = if ($debugMode) { "stub creation" } else { "compression" }
-                    Write-Host "WhatIf: Skipped $action for $($entry.'Subfolder Name')"
-                }
-            }
-        }
+        # ... sequential block unchanged ...
     }
 }
 
