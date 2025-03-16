@@ -10,8 +10,11 @@ The current 15 March version (not tagged as a version yet) works with WhatIf. I 
 
 I've decided to make a version a new "alpha build" and also just use the script name ```steamzipper.ps1```.
 
+New feature as of March 15th!
+Using the parallel parameter *should* zip multiple folders at the same time. I just got it working so I'm just assuming a mild breeze will break it. But it's there to try.
+
 USAGE:
-```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> [<optional: createAnswerFile> | <optional: answerFile:answer.txt>] <optional: WhatIf> ```
+```steamzipper.ps1 -sourceFolder  <source folder> -destinationFolder <destination folder> <optional: debubMode> <optional: keepDuplicates> <optional: verbMode> <optional: compressionLevel: [optimal | Fastest | None]> [<optional: createAnswerFile> | <optional: answerFile:answer.txt>] <optional: WhatIf> <optional: parallel> ```
 
 note: this is how to use a generated answer file
 ```pwsh -command '& { .\steamzipper.ps1 -answerFile:answer.txt }'```
@@ -93,7 +96,11 @@ So this command
 
 works perfectly well. I need this because -WhatIf doesn't generate the transcript file as the other parameters do and I still need the console output for copy/pasting and readibility. 
 
+I think I have the -parallel parameter working now. In my tests parallel is ~20 seconds faster that sequential (40 seconds versus 60 seconds, which I realize without file sizes doesn't mean much). 
 
+And -parallel seems to work with -WhatIf. Although again I think this can be easily broken. Just think of the script status as a fragile hollowed eggshell right now. Anything could make it crash horribly. 
+
+Information on parallel: by default it will only zip the same number of folders as your CPU as cores/threads. In other words on my 8 core CPU it will default to zipping 8 folders at a time. A quadcore 4 folders and 16 core 16 folders. You get the idea. The LLM assistant insisted on an arbitrary throttle limit of 16 parallel jobs at once regardless of how many more cores than that the CPU has. Or maybe it's not an arbitrary limit? No idea. The reasoning has to do with over saturating the I/O bus and/just generally locking up the script and/or OS. I'll add a parameter or comment in the code on how to ignore the throttle limit. If you own one of those AMD machines with 64 threads are you not going to know the concequences of zipping 64 folders at once? I don't know. Seemed arbitrary to me.
 
 ### 14 March 2025
 

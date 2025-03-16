@@ -106,8 +106,8 @@ Move-Item -Path "P:\steamzipper\zip test output\deleted\*" -Destination "P:\stea
 
 
 
-Get-ChildItem -Path "P:\steamzipper\steam temp storage" | Select-Object Name, LastWriteTime
+Get-ChildItem -Path "P:\steamzipper\steam temp storage" | Select-Object Name, LastWriteTime > .\source-dest-content-reset.txt
 
-Get-ChildItem -Path "P:\steamzipper\zip test output" | Select-Object Name
+Get-ChildItem -Path "P:\steamzipper\zip test output" | Select-Object Name >> .\source-dest-content-reset.txt
 
 Get-ChildItem -Path "P:\steamzipper\zip test output\deleted\" | Select-Object Name
