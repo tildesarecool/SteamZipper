@@ -83,12 +83,17 @@ destination storage device **[done]**
 - more/better error checking and dealing with the errors (effectively done)
 - Some semblance of dealing with duplicate zips via parameter or whatever **[done]**
 - created config file or "answer file" for repeat running **[done]**
-- - an argument to select a compression level besides the default **[done]**
+  - an argument to select a compression level besides the default **[done]**
 
 Might be a little much just for a thing that zips some folders.
 
 
 ---
+
+### 17 March 2025
+
+I added that comment-based help block to the script. So theoretically the script with work with get-help as well as with a -help and -? etc. Only when using the -detailed flag at the end the details don't show, at least now for me. I haven't figured out yet if this is something unique to my particular installation of Windows or if this is a syntax problem in how to put in the help documentation. So help is there but the useful information like examples may or may not work.
+
 
 ### 16 March 2025
 

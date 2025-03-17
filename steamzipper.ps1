@@ -5,7 +5,72 @@
 #pwsh -command '& { .\hashtable_build.ps1 "P:\steamzipper\steam temp storage" "P:\steamzipper\zip test output" -debugMode }'
 
 #[CmdletBinding(DefaultParameterSetName="Manual", SupportsShouldProcess=$true)]  SupportsShouldProcess enables WhatIf
+
 [CmdletBinding(DefaultParameterSetName="Manual", SupportsShouldProcess=$true)]
+<# 
+.SYNOPSIS
+    Compresses Steam game folders into dated zip archives with parallel processing and duplicate management.
+
+.DESCRIPTION
+    SteamZipper scans a source folder for Steam game subfolders, creates zip archives with a consistent naming format (e.g., "Game_Name_MMddyyyy_steam.zip"), and manages older duplicates by moving them to a "deleted" subfolder. It supports parallel compression for speed, controlled by the -MaxJobs parameter, and includes options for debugging, verbose output, and previewing actions with -WhatIf.
+
+.PARAMETER sourceFolder
+    The path to the folder containing Steam game subfolders to compress. Required unless using an answer file.
+
+.PARAMETER destinationFolder
+    The path where zip archives will be created. If it doesn’t exist, it will be created automatically.
+
+.PARAMETER sourceFile
+    A text file listing specific subfolders to process (one per line). If omitted, all subfolders in sourceFolder are processed.
+
+.PARAMETER debugMode
+    Switch to create empty stub zip files (0 KB) instead of compressing, for testing purposes.
+
+.PARAMETER VerbMode
+    Switch to enable verbose output, showing detailed progress and table contents.
+
+.PARAMETER keepDuplicates
+    Switch to retain older zip duplicates in the destination folder instead of moving them to "deleted".
+
+.PARAMETER CompressionLevel
+    Specifies the compression level: "Optimal" (default), "Fastest", or "NoCompression".
+
+.PARAMETER answerFile
+    Path to a JSON file containing script parameters (e.g., sourceFolder, debugMode). Overrides command-line args if provided.
+
+.PARAMETER createAnswerFile
+    Path to create a sample JSON answer file with current parameter values, then exit.
+
+.PARAMETER Parallel
+    Switch to enable parallel compression, improving performance on multi-core systems.
+
+.PARAMETER MaxJobs
+    Number of parallel jobs (1-16). Defaults to the CPU core count, capped at 16 or the core count, whichever is lower.
+
+.PARAMETER Help
+    Displays this help message and exits.
+
+.EXAMPLE
+    .\steamzipper.ps1 -sourceFolder "P:\Steam\Games" -destinationFolder "P:\Backups" -Parallel
+    Compresses all subfolders in "P:\Steam\Games" to "P:\Backups" in parallel using default job count.
+
+.EXAMPLE
+    .\steamzipper.ps1 -sourceFolder "P:\Steam\Games" -destinationFolder "P:\Backups" -MaxJobs 4 -VerbMode -WhatIf
+    Previews compression of "P:\Steam\Games" subfolders with 4 parallel jobs and verbose output.
+
+.EXAMPLE
+    .\steamzipper.ps1 -answerFile "config.json" -Parallel
+    Runs using parameters from "config.json" with parallel compression.
+
+.NOTES
+    - Requires PowerShell 7 or later.
+    - Ensure sufficient disk space in the destination folder.
+    - Output zip format: "Subfolder_Name_MMddyyyy_steam.zip".
+    - Logs are saved to "transcript.txt" in the script’s directory unless -WhatIf is used.
+
+.LINK
+    https://aka.ms/powershell (PowerShell Download)
+#>
 param (
     [Parameter(ParameterSetName="Manual")][string]$sourceFolder,
     [Parameter(ParameterSetName="Manual")][string]$destinationFolder,
@@ -17,17 +82,23 @@ param (
     [Parameter(ParameterSetName="Manual")][string]$answerFile,
     [Parameter(ParameterSetName="Manual")][string]$createAnswerFile,
     [Parameter(ParameterSetName="Manual")][switch]$Parallel,
-    [Parameter(ParameterSetName="Manual")][ValidateRange(1, 16)][int]$MaxJobs = $global:maxJobsDefine  # New parameter
+    [Parameter(ParameterSetName="Manual")][ValidateRange(1, 16)][int]$MaxJobs = $global:maxJobsDefine,
+    [Parameter(ParameterSetName="Manual")][switch]$Help
 )
 
-# Remove this check since AnswerFile set is gone
-# if ($PSCmdlet.ParameterSetName -eq "AnswerFile" -and -not $answerFile) { ... }
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     Write-Host "Error: This script requires PowerShell 7 or later. You are running PowerShell $($PSVersionTable.PSVersion.ToString())." -ForegroundColor Red
     Write-Host "Please upgrade to PowerShell 7 or higher. Download it from: https://aka.ms/powershell" -ForegroundColor Yellow
     Write-Host "Exiting now." -ForegroundColor Red
     exit 1
 }
+
+# Handle -Help switch
+if ($Help) {
+    Get-Help $PSCommandPath -Detailed
+    exit 0
+}
+
 
 # Define immutable global variables
 $global:maxJobsDefine = [System.Environment]::ProcessorCount
