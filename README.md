@@ -6,6 +6,23 @@ I'm not assuming this exact script hasn't already been done in many other langua
 ### Current Script status: Working - easy to break, very unstable
 (the flagged "release" is good)
 
+**17 March 2025**
+
+note: I tried to use the LLM to make an adjustment to the script and its not working correctly again. 
+
+#### The good news and the bad news
+
+Okay technically when I run
+```pwsh -Command ".\steamzipper.ps1 -sourceFolder 'P:\steamzipper\steam temp storage' -destinationFolder 'P:\steamzipper\zip test output' -VerbMode -Parallel -MaxJobs 4 "```
+
+The script does appear to zip folders. But it does not deal with duplicates, one of the first things I got running. So it's "kind of working". Also none-parallel running no longer works at all.
+
+The bad news is I don't really feel like continuing to work on this version of the script. So instead of dropping back to a working version I am going to start the script over from scratch *without the assistance of an LLM*. I'll still have the current script as a reference, but I'll be doing all the actual program writing. And I think I'll write it in the opposite direction e.g. getting job pooling working as an early stage rather than one of the last.
+
+I haven't decided yet if I want to create fresh repository or re-model this one. I'm leaning towards a fresh one.
+
+---
+
 The current 15 March version (not tagged as a version yet) works with WhatIf. I haven't thuroughly tested it yet though. It won't be hard to find a combination of parameters that breaks the script. So...don't do that. Or fix it. 
 
 I've decided to make a version a new "alpha build" and also just use the script name ```steamzipper.ps1```.
@@ -93,6 +110,8 @@ Might be a little much just for a thing that zips some folders.
 ### 17 March 2025
 
 I added that comment-based help block to the script. So theoretically the script with work with get-help as well as with a -help and -? etc. Only when using the -detailed flag at the end the details don't show, at least now for me. I haven't figured out yet if this is something unique to my particular installation of Windows or if this is a syntax problem in how to put in the help documentation. So help is there but the useful information like examples may or may not work.
+
+As stated in the news section above, I've decided to abandon this almost working version in favor of a fresh start version of the script. I've come a long way with this script, knowledge, know-how and skills wise. I think it will only benefit me in my re-writing.
 
 
 ### 16 March 2025

@@ -1,0 +1,110 @@
+Welcome to SteamZipper!
+This script zips your Steam folders. Ensure the storage device of 'P:\steamzipper\zip test output' has enough space!
+Running on GALACTICA - 03/17/2025 16:06:39
+Loaded 11 subfolders from 'P:\steamzipper\steam temp storage'
+Built initialization table with 12 entries
+Checking bit Dungeon: Size 44457.5537109375 KB
+Checking bit Dungeon II: Size 72976.064453125 KB
+Checking bit Dungeon III: Size 343405.794921875 KB
+Checking cyberpunk: Size 0 KB
+Skipping empty subfolder: cyberpunk (Size: 0 KB)
+Checking Dig Dog: Size 107282.669921875 KB
+Checking doom 2016: Size 0 KB
+Skipping empty subfolder: doom 2016 (Size: 0 KB)
+Checking Horizon Chase: Size 1282925.18847656 KB
+Checking Markov Alg: Size 6295.462890625 KB
+Checking Ms. PAC-MAN: Size 813127.333984375 KB
+Checking Outzone: Size 3657.0087890625 KB
+Checking PAC-MAN: Size 800904.712890625 KB
+Built first refined table with 9 entries
+Subfolder bit Dungeon zip (bit_Dungeon_11012024_steam.zip) is current or newer, marked as NoAction
+Subfolder bit Dungeon II zip (bit_Dungeon_II_11012024_steam.zip) is current or newer, marked as NoAction
+Subfolder bit Dungeon III zip (bit_Dungeon_III_11012024_steam.zip) is current or newer, marked as NoAction
+Subfolder Dig Dog zip (Dig_Dog_11092024_steam.zip) is current or newer, marked as NoAction
+Subfolder Horizon Chase zip (Horizon_Chase_01012025_steam.zip) is current or newer, marked as NoAction
+Subfolder Markov Alg has no existing zip, marked as NeedsZip
+Subfolder Ms. PAC-MAN zip (Ms._PAC-MAN_11012024_steam.zip) is current or newer, marked as NoAction
+Subfolder Outzone zip (Outzone_11012024_steam.zip) is current or newer, marked as NoAction
+Subfolder PAC-MAN zip (PAC-MAN_02062025_steam.zip) is current or newer, marked as NoAction
+Built zip decision table with 9 entries
+Built compress table with 9 entries
+Duplicate zip moves completed, starting parallel compression with 4 jobs
+Created stub zip: P:\steamzipper\zip test output\Markov_Alg_11022024_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\bit_Dungeon_11012024_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\bit_Dungeon_II_11012024_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\Dig_Dog_11092024_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\Horizon_Chase_01012025_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\Ms._PAC-MAN_11012024_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\bit_Dungeon_III_11012024_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\PAC-MAN_02062025_steam.zip (0 KB)
+Created stub zip: P:\steamzipper\zip test output\Outzone_11012024_steam.zip (0 KB)
+Summary: The following Stub files were created at 'P:\steamzipper\zip test output':
+  - Markov_Alg_11022024_steam.zip
+  - bit_Dungeon_11012024_steam.zip
+  - bit_Dungeon_II_11012024_steam.zip
+  - bit_Dungeon_III_11012024_steam.zip
+  - Dig_Dog_11092024_steam.zip
+  - Horizon_Chase_01012025_steam.zip
+  - Ms._PAC-MAN_11012024_steam.zip
+  - Outzone_11012024_steam.zip
+  - PAC-MAN_02062025_steam.zip
+Initialization Table:
+
+[32;1mSubfolder Name [0m[32;1m Folder Last Write Date[0m[32;1m File Name[0m
+[32;1m-------------- [0m [32;1m----------------------[0m [32;1m---------[0m
+bit Dungeon     11/1/2024 21:38:04     bit_Dungeon_11012024_steam.zip
+bit Dungeon II  11/1/2024 21:38:02     bit_Dungeon_II_11012024_steam.zip
+bit Dungeon III 11/1/2024 21:38:04     bit_Dungeon_III_11012024_steam.zip
+cyberpunk       2/6/2025 12:00:00      Dig_Dog_11012024_steam.zip
+Dig Dog         11/9/2024 16:46:38     Dig_Dog_11092024_steam.zip
+doom 2016       11/19/2024 09:41:09    Horizon_Chase_01012025_steam.zip
+Horizon Chase   1/1/2025 12:00:00      Horizon_Chase_12152024_steam.zip
+Markov Alg      11/2/2024 12:00:00     Markov_Alg_11012024_steam.zip
+Ms. PAC-MAN     11/1/2024 17:24:24     Markov_Alg_12212024_steam.zip
+Outzone         11/1/2024 17:24:31     Ms._PAC-MAN_11012024_steam.zip
+PAC-MAN         2/6/2025 13:21:09      Outzone_11012024_steam.zip
+                                       PAC-MAN_02062025_steam.zip
+
+First Refined Table:
+
+[32;1mSubfolder Name [0m[32;1m Folder Last Write Date[0m[32;1m Zip File Name[0m
+[32;1m-------------- [0m [32;1m----------------------[0m [32;1m-------------[0m
+bit Dungeon     11/1/2024 21:38:04     bit_Dungeon_11012024_steam.zip
+bit Dungeon II  11/1/2024 21:38:02     bit_Dungeon_II_11012024_steam.zip
+bit Dungeon III 11/1/2024 21:38:04     bit_Dungeon_III_11012024_steam.zip
+Dig Dog         11/9/2024 16:46:38     Dig_Dog_11092024_steam.zip
+Horizon Chase   1/1/2025 12:00:00      Horizon_Chase_01012025_steam.zip
+Markov Alg      11/2/2024 12:00:00     Markov_Alg_11022024_steam.zip
+Ms. PAC-MAN     11/1/2024 17:24:24     Ms._PAC-MAN_11012024_steam.zip
+Outzone         11/1/2024 17:24:31     Outzone_11012024_steam.zip
+PAC-MAN         2/6/2025 13:21:09      PAC-MAN_02062025_steam.zip
+
+Zip Decision Table:
+
+[32;1mSubfolder Name [0m[32;1m Folder Last Write Date[0m[32;1m Existing Zip Name[0m[32;1m Expected Zip Name                 [0m[32;1m Status[0m
+[32;1m-------------- [0m [32;1m----------------------[0m [32;1m-----------------[0m [32;1m-----------------                 [0m [32;1m------[0m
+bit Dungeon     11/1/2024 21:38:04                       bit_Dungeon_11012024_steam.zip     NoAction
+bit Dungeon II  11/1/2024 21:38:02                       bit_Dungeon_II_11012024_steam.zip  NoAction
+bit Dungeon III 11/1/2024 21:38:04                       bit_Dungeon_III_11012024_steam.zip NoAction
+Dig Dog         11/9/2024 16:46:38                       Dig_Dog_11092024_steam.zip         NoAction
+Horizon Chase   1/1/2025 12:00:00                        Horizon_Chase_01012025_steam.zip   NoAction
+Markov Alg      11/2/2024 12:00:00                       Markov_Alg_11022024_steam.zip      NeedsZip
+Ms. PAC-MAN     11/1/2024 17:24:24                       Ms._PAC-MAN_11012024_steam.zip     NoAction
+Outzone         11/1/2024 17:24:31                       Outzone_11012024_steam.zip         NoAction
+PAC-MAN         2/6/2025 13:21:09                        PAC-MAN_02062025_steam.zip         NoAction
+
+Compress Table:
+
+[32;1mSubfolder Name [0m[32;1m Folder Last Write Date[0m[32;1m Expected Zip                      [0m[32;1m Existing Zip[0m[32;1m Old Zips[0m
+[32;1m-------------- [0m [32;1m----------------------[0m [32;1m------------                      [0m [32;1m------------[0m [32;1m--------                    [0m
+Markov Alg      11/2/2024 12:00:00     Markov_Alg_11022024_steam.zip                   {Markov_Alg_11012024_steam..
+bit Dungeon     11/1/2024 21:38:04     bit_Dungeon_11012024_steam.zip                                              
+bit Dungeon II  11/1/2024 21:38:02     bit_Dungeon_II_11012024_steam.zip                                           
+bit Dungeon III 11/1/2024 21:38:04     bit_Dungeon_III_11012024_steam.zip                                          
+Dig Dog         11/9/2024 16:46:38     Dig_Dog_11092024_steam.zip                      {Dig_Dog_11012024_steam.zip.
+Horizon Chase   1/1/2025 12:00:00      Horizon_Chase_01012025_steam.zip                {Horizon_Chase_01012025_ste.
+Ms. PAC-MAN     11/1/2024 17:24:24     Ms._PAC-MAN_11012024_steam.zip                                              
+Outzone         11/1/2024 17:24:31     Outzone_11012024_steam.zip                                                  
+PAC-MAN         2/6/2025 13:21:09      PAC-MAN_02062025_steam.zip                                                  
+
+Script completed successfully

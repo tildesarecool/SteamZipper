@@ -314,22 +314,52 @@ function Get-FileDateStamp {
 }
 
 function Move-DuplicateZips {
-    param ([string]$SubfolderName, [datetime]$ReferenceDate, [string]$ExpectedZip, [string]$DestinationFolder, [string]$DeletedFolder, [switch]$KeepDuplicates)
+    param (
+        [string]$SubfolderName,
+        [datetime]$ReferenceDate,
+        [string]$ExpectedZip,
+        [string]$DestinationFolder,
+        [string]$DeletedFolder,
+        [switch]$KeepDuplicates,
+        [switch]$DebugMode  # Add this to check debug state
+    )
     if (-not $KeepDuplicates) {
         $platform = Get-PlatformShortName
         $duplicateZips = Get-ChildItem -Path $DestinationFolder -Filter "${SubfolderName}*_${platform}.$global:CompressionExtension" | 
-                         Where-Object { $dupDate = Get-FileDateStamp -InputValue $_.Name; $dupDate -and $dupDate -lt $ReferenceDate -and $_.Name -ne $ExpectedZip }
-        foreach ($dup in $duplicateZips) {
-            $dupPath = $dup.FullName
-            $deletedDupPath = Join-Path -Path $DeletedFolder -ChildPath $dup.Name
-            if ($PSCmdlet.ShouldProcess($dupPath, "Move duplicate to $deletedDupPath")) {
-                Move-Item -Path $dupPath -Destination $deletedDupPath -Force
-                if ($VerbMode) { Write-Host "Moved duplicate older zip to: $deletedDupPath" }
+                         Where-Object { 
+                             $dupDate = Get-FileDateStamp -InputValue $_.Name
+                             $dupDate -and $dupDate -lt $ReferenceDate -and $_.Name -ne $ExpectedZip 
+                         }
+        if ($duplicateZips.Count -gt 0) {  # Only proceed if there are duplicates
+            if ($DebugMode) {
+                # Debug mode: Move to deleted folder
+                if (-not (Test-Path -Path $DeletedFolder)) {
+                    if ($PSCmdlet.ShouldProcess($DeletedFolder, "Create deleted folder")) {
+                        New-Item -Path $DeletedFolder -ItemType Directory | Out-Null
+                        if ($global:VerbMode) { Write-Host "Created deleted folder: $DeletedFolder" }
+                    }
+                }
+                foreach ($dup in $duplicateZips) {
+                    $dupPath = $dup.FullName
+                    $deletedDupPath = Join-Path -Path $DeletedFolder -ChildPath $dup.Name
+                    if ($PSCmdlet.ShouldProcess($dupPath, "Move duplicate to $deletedDupPath")) {
+                        Move-Item -Path $dupPath -Destination $deletedDupPath -Force
+                        if ($global:VerbMode) { Write-Host "Moved duplicate older zip to: $deletedDupPath" }
+                    }
+                }
+            } else {
+                # Normal mode: Delete duplicates
+                foreach ($dup in $duplicateZips) {
+                    $dupPath = $dup.FullName
+                    if ($PSCmdlet.ShouldProcess($dupPath, "Delete duplicate")) {
+                        Remove-Item -Path $dupPath -Force
+                        if ($global:VerbMode) { Write-Host "Deleted duplicate older zip: $dupPath" }
+                    }
+                }
             }
         }
     }
 }
-
 
 
 function Build-FirstRefinedTable {
@@ -381,15 +411,22 @@ function Build-FirstRefinedTable {
 function Build-CompressTable {
     param ([Parameter(Mandatory=$true)] $zipDecisionTable)
     $platform = Get-PlatformShortName
-    $compressTable = @($zipDecisionTable | Where-Object { $_.Status -in @("NeedsZip", "NeedsUpdate") } | ForEach-Object {
+    $compressTable = @($zipDecisionTable | ForEach-Object {
         $subfolderName = $_."Subfolder Name"
         $underscoreName = $subfolderName -replace " ", "_"
-        $matchingZips = Get-ChildItem -Path $destinationFolder -File -Filter "*.$global:CompressionExtension" | Where-Object { 
-            $parts = $_.Name -split "_"
-            ($parts[-1] -eq "$platform.$global:CompressionExtension") -and ($parts[0..($parts.Count - 3)] -join "_") -eq $underscoreName
-        }
-        $latestZip = if ($_.Status -eq "NeedsUpdate") { $_."Existing Zip Name" } else { "" }
-        $oldZips = if ($matchingZips.Count -gt 1) { $matchingZips | Where-Object { $_.Name -ne $latestZip -and $_.Name -ne $_."Expected Zip Name" } | Select-Object -ExpandProperty Name } else { $null }
+        $matchingZips = Get-ChildItem -Path $destinationFolder -File -Filter "*.$global:CompressionExtension" | 
+                        Where-Object { 
+                            $parts = $_.Name -split "_"
+                            ($parts[-1] -eq "$platform.$global:CompressionExtension") -and 
+                            ($parts[0..($parts.Count - 3)] -join "_") -eq $underscoreName
+                        }
+        $latestZip = if ($_.Status -eq "NeedsUpdate") { $_."Existing Zip Name" } else { 
+                         $matchingZips | Where-Object { $_.Name -eq $_."Expected Zip Name" } | Select-Object -ExpandProperty Name -First 1
+                     }
+        $oldZips = if ($matchingZips.Count -gt 1) { 
+                       $matchingZips | Where-Object { $_.Name -ne $latestZip -and $_.Name -ne $_."Expected Zip Name" } | Select-Object -ExpandProperty Name 
+                   } else { $null }
+        # Always include entries, even NoAction, to check for old zips
         [PSCustomObject]@{
             "Subfolder Name" = $subfolderName
             "Folder Last Write Date" = $_."Folder Last Write Date"
@@ -407,15 +444,10 @@ function Compress-Folders {
     param (
         [Parameter(Mandatory=$true)] $decisionTable,
         [switch]$keepDuplicates,
-        [string]$CompressionLevel = "Optimal"
+        [string]$CompressionLevel = "Optimal",
+        [switch]$debugMode  # Add this to pass debug state
     )
     $deletedFolder = Join-Path -Path $destinationFolder -ChildPath "deleted"
-    if (-not (Test-Path -Path $deletedFolder)) { 
-        if ($PSCmdlet.ShouldProcess($deletedFolder, "Create deleted folder")) {
-            New-Item -Path $deletedFolder -ItemType Directory | Out-Null
-            if ($VerbMode) { Write-Host "Created deleted folder: $deletedFolder" }
-        }
-    }
     foreach ($entry in $decisionTable) {
         if ($entry."Existing Zip" -and $entry.Status -eq "NeedsUpdate") {
             Move-DuplicateZips -SubfolderName ($entry."Subfolder Name" -replace " ", "_") `
@@ -423,7 +455,8 @@ function Compress-Folders {
                               -ExpectedZip $entry."Expected Zip" `
                               -DestinationFolder $destinationFolder `
                               -DeletedFolder $deletedFolder `
-                              -KeepDuplicates:$keepDuplicates
+                              -KeepDuplicates:$keepDuplicates `
+                              -DebugMode:$debugMode
         }
         if ($entry."Old Zips") {
             Move-DuplicateZips -SubfolderName ($entry."Subfolder Name" -replace " ", "_") `
@@ -431,12 +464,13 @@ function Compress-Folders {
                               -ExpectedZip $entry."Expected Zip" `
                               -DestinationFolder $destinationFolder `
                               -DeletedFolder $deletedFolder `
-                              -KeepDuplicates:$keepDuplicates
+                              -KeepDuplicates:$keepDuplicates `
+                              -DebugMode:$debugMode
         }
     }
     if ($Parallel) {
-        $throttleLimit = [Math]::Min($MaxJobs, 16)  # Cap at 16
-        $effectiveJobs = [Math]::Min($throttleLimit, $global:maxJobsDefine)  # Actual jobs
+        $throttleLimit = [Math]::Min($MaxJobs, 16)
+        $effectiveJobs = [Math]::Min($throttleLimit, $global:maxJobsDefine)
         if ($VerbMode) { Write-Host "Duplicate zip moves completed, starting parallel compression with $effectiveJobs jobs" }
         $decisionTable | ForEach-Object -ThrottleLimit $throttleLimit -Parallel {
             $sourcePath = Join-Path -Path $Using:sourceFolder -ChildPath $_."Subfolder Name"
@@ -498,8 +532,10 @@ function main {
     Set-Variable -Name "ZipDecisionTable" -Value $global:ZipDecisionTable -Scope Global -Option ReadOnly
 
     $compressTable = Build-CompressTable -zipDecisionTable $global:ZipDecisionTable
-    if ($null -eq $compressTable -or $compressTable.Count -eq 0) {
+    if ($null -eq $compressTable -or ($compressTable | Where-Object { $_.Status -in @("NeedsZip", "NeedsUpdate") }).Count -eq 0) {
         Write-Host "Everything is up to date, no changes made" -ForegroundColor Green
+        # Still check for duplicates even if no compression needed
+        Compress-Folders -decisionTable $compressTable -keepDuplicates:$keepDuplicates -CompressionLevel $CompressionLevel -debugMode:$debugMode
         # Summary for no changes
         if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) {
             Write-Host "Summary: No files will be created as all zips are up to date." -ForegroundColor Cyan
@@ -508,7 +544,7 @@ function main {
             Write-Host "Summary: No $action were created as everything is already up to date." -ForegroundColor Green
         }
     } else {
-        Compress-Folders -decisionTable $compressTable -keepDuplicates:$keepDuplicates -CompressionLevel $CompressionLevel
+        Compress-Folders -decisionTable $compressTable -keepDuplicates:$keepDuplicates -CompressionLevel $CompressionLevel -debugMode:$debugMode
         # Summary for changes
         if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) {
             Write-Host "Summary: The following zip files would be created at '$destinationFolder' when run:" -ForegroundColor Cyan
